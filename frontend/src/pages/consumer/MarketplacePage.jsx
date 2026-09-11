@@ -1,0 +1,12 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { addToCart, getProducts } from '../../services/api';
+import { getProductImage } from '../../utils/productImages';
+export default function MarketplacePage() {
+    const [products, setProducts] = useState([]);
+    const [search, setSearch] = useState('');
+    const [message, setMessage] = useState('');
+    useEffect(() => { getProducts().then((result) => setProducts(result.items)).catch(() => setMessage('Unable to load marketplace')); }, []);
+    const visible = products.filter((product) => `${product.name} ${product.crop} ${product.location}`.toLowerCase().includes(search.toLowerCase()));
+    return <main className="min-h-screen p-6 text-white"><div className="container"><Link className="text-sm text-emerald-200" to="/dashboard/consumer">Dashboard</Link><div className="mt-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm uppercase tracking-[0.2em] text-emerald-200/70">Marketplace</p><h1 className="mt-2 text-4xl font-black">Source direct from farms.</h1></div><Link className="btn-secondary" to="/cart">View cart</Link></div><input className="mt-8 w-full rounded-xl border border-emerald-400/20 bg-slate-950/60 px-4 py-3" placeholder="Search produce, crop, or location" value={search} onChange={(event) => setSearch(event.target.value)}/>{message && <p className="mt-4 text-rose-300" role="alert">{message}</p>}<div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{visible.map((product) => <article className="card overflow-hidden p-0" key={product.id}><img className="product-image" src={getProductImage(product)} alt={product.name}/><div className="p-5"><h2 className="text-xl font-semibold">{product.name}</h2><p className="mt-1 text-sm text-emerald-50/65">{product.quality} · {product.location}</p><p className="mt-5 text-2xl font-bold text-emerald-200">₹{product.price}<span className="text-sm font-normal">/{product.unit}</span></p><p className="mt-2 text-sm text-emerald-50/70">{product.quantity} {product.unit} available</p><button className="btn-primary mt-5 w-full" type="button" onClick={() => addToCart(product.id).then(() => setMessage(`${product.name} added to cart.`)).catch((error) => setMessage(error instanceof Error ? error.message : 'Unable to add item'))}>Add to cart</button></div></article>)}{visible.length === 0 && <p className="text-emerald-50/65">No products available yet.</p>}</div></div></main>;
+}

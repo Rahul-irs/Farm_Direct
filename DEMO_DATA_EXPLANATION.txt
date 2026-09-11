@@ -1,0 +1,63 @@
+FARMDIRECT AI - DEMO DATA EXPLANATION
+=====================================
+
+Purpose
+-------
+backend/seed.py creates database records for a realistic presentation. The records
+are stored in SQLite or PostgreSQL. React never imports these records directly;
+it requests them from Flask APIs.
+
+Demo accounts
+-------------
+Admin:              admin@farmdirect.ai
+Farmer:             farmer@farmdirect.ai
+Second farmer:      farmer2@farmdirect.ai
+Consumer:           consumer@farmdirect.ai
+FPO:                fpo@farmdirect.ai
+Field assistant:    assistant@farmdirect.ai
+Bulk buyer:         buyer@farmdirect.ai
+Logistics provider: logistics@farmdirect.ai
+
+Password for all accounts: demo12345
+
+Real-world story
+----------------
+1. Ravi Kumar and Meena Patel publish tomatoes, rice, onions, and mangoes. These
+   are Product rows owned by farmer users and visible in the marketplace.
+
+2. Green Valley FPO has both farmers as members and records a tomato aggregation.
+   This demonstrates how an FPO coordinates supply from multiple farms.
+
+3. Suresh is assigned to Ravi as a field assistant. The assignment is stored in
+   the database and protected by the field-assistant role API.
+
+4. FreshMart creates an onion bulk requirement for 200 kg in Mumbai. The API can
+   match it against live Product rows with enough inventory.
+
+5. Anita buys 10 kg of tomatoes. The completed Order contains an OrderItem,
+   inventory is reduced, and a Payment row records the development transaction.
+
+6. Anita's order has a five-star Review. Notifications are created for Anita and
+   Ravi, so notification pages show a real event history.
+
+7. SwiftRoute accepts the order's Delivery. A vehicle, driver, and six Tracking
+   events show the journey from AVAILABLE to DELIVERED.
+
+8. The admin account can inspect users, products, orders, analytics, and the
+   audit event showing that the demo scenario was created.
+
+How to load it
+--------------
+From the repository root:
+
+    python backend/seed.py
+
+Then start Flask and the frontend. Use the role accounts above to explain each
+workflow. The script is idempotent for the named records, so it can be run again
+without intentionally duplicating the main demo scenario.
+
+Important distinction
+---------------------
+This is development seed data, not hardcoded application data. Production users,
+products, orders, payments, and tracking events come from PostgreSQL through the
+Flask API. Delete or replace the demo database before production deployment.

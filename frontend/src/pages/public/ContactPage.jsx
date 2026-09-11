@@ -1,0 +1,4 @@
+import { Link } from 'react-router-dom';
+export default function ContactPage() {
+    return <main className="min-h-screen p-6 text-white"><div className="container max-w-2xl"><Link className="text-sm text-emerald-200" to="/">FarmDirect AI</Link><h1 className="mt-8 text-5xl font-black">Let’s improve the chain.</h1><p className="mt-5 text-emerald-50/75">For partnerships, implementation questions, or account support, reach the FarmDirect team directly.</p><div className="card mt-8 p-6"><p className="text-sm uppercase tracking-[0.2em] text-emerald-200/70">Support</p><a className="mt-3 block text-xl font-semibold text-emerald-200" href="mailto:support@farmdirect.ai">support@farmdirect.ai</a><p className="mt-4 text-sm text-emerald-50/65">We will route your request to the appropriate operations team.</p></div></div></main>;
+}

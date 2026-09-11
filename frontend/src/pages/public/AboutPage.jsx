@@ -1,0 +1,4 @@
+import { Link } from 'react-router-dom';
+export default function AboutPage() {
+    return <main className="min-h-screen p-6 text-white"><div className="container max-w-4xl"><Link className="text-sm text-emerald-200" to="/">FarmDirect AI</Link><h1 className="mt-8 text-5xl font-black">A clearer route from farm to table.</h1><p className="mt-6 max-w-2xl text-lg text-emerald-50/75">FarmDirect AI gives agricultural networks one place to list produce, buy with confidence, coordinate delivery, and make decisions from real operational data.</p><div className="mt-10 grid gap-5 md:grid-cols-3">{['Transparent commerce', 'Reliable operations', 'Useful intelligence'].map((title) => <section className="card p-6" key={title}><h2 className="text-xl font-bold">{title}</h2><p className="mt-3 text-sm text-emerald-50/70">Built around accountable records rather than disconnected spreadsheets or opaque handoffs.</p></section>)}</div></div></main>;
+}
