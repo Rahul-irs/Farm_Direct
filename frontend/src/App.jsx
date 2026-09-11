@@ -52,7 +52,7 @@ function App() {
         <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/dashboard/farmer" element={<FarmerDashboardPage />}/></Route>
         <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/products" element={<FarmerProductsPage />}/></Route>
         <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/orders" element={<FarmerOrdersPage />}/></Route>
-        <Route element={<ProtectedRoute roles={['consumer']}/>}><Route path="/dashboard/consumer" element={<ConsumerDashboardPage />}/></Route>
+        <Route element={<ProtectedRoute roles={['consumer', 'bulk_buyer']}/>}><Route path="/dashboard/consumer" element={<ConsumerDashboardPage />}/></Route>
         <Route element={<ProtectedRoute roles={['consumer', 'bulk_buyer']}/>}><Route path="/marketplace" element={<MarketplacePage />}/><Route path="/cart" element={<CartPage />}/><Route path="/orders" element={<OrdersPage />}/><Route path="/orders/:orderId/tracking" element={<TrackingPage />}/><Route path="/notifications" element={<NotificationsPage />}/><Route path="/payments" element={<PaymentsPage />}/><Route path="/review" element={<ReviewPage />}/></Route>
         <Route element={<ProtectedRoute roles={['admin']}/>}><Route path="/dashboard/admin" element={<AdminDashboardPage />}/></Route>
         <Route element={<ProtectedRoute roles={['admin']}/>}><Route path="/admin/users" element={<AdminUsersPage />}/><Route path="/admin/products" element={<AdminProductsPage />}/><Route path="/admin/orders" element={<AdminOrdersPage />}/><Route path="/admin/audit-logs" element={<AdminAuditLogsPage />}/></Route>
