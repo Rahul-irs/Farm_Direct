@@ -78,7 +78,7 @@ def register():
 @auth_bp.post('/login')
 def login():
     data = request.get_json(silent=True) or {}
-    email = (data.get('email') or '').lower()
+    email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
 
     user = User.query.filter_by(email=email).first()

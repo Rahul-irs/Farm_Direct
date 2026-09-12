@@ -19,7 +19,7 @@ def pay_for_order(user, order_id):
     if Payment.query.filter_by(order_id=order.id).first():
         return jsonify({'success': False, 'message': 'Order has already been paid'}), 409
     payment = Payment(order_id=order.id, customer_id=user.id, amount=order.total_amount, transaction_reference=f'DEV-{secrets.token_hex(8)}')
-    order.status = 'COMPLETED'
+    order.status = 'PAID'
     db.session.add(payment)
     db.session.commit()
     return jsonify({'success': True, 'payment': payment.to_dict(), 'order': order.to_dict()}), 201

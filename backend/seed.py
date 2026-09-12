@@ -14,13 +14,16 @@ from app.models.review import Review
 from app.models.user import User
 
 app = create_app()
+DEMO_PASSWORD = 'demo12345'
 
 
 def get_or_create_user(email, full_name, role, phone):
     user = User.query.filter_by(email=email).first()
     if user:
+        user.password_hash = generate_password_hash(DEMO_PASSWORD)
+        user.is_verified = True
         return user
-    user = User(full_name=full_name, email=email, phone=phone, role=role, password_hash=generate_password_hash('demo12345'), is_verified=True)
+    user = User(full_name=full_name, email=email, phone=phone, role=role, password_hash=generate_password_hash(DEMO_PASSWORD), is_verified=True)
     db.session.add(user)
     db.session.flush()
     return user

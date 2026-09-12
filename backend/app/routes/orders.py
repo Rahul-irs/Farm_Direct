@@ -6,6 +6,7 @@ from ..models.order import Order, OrderItem
 from ..models.product import Product
 from ..models.notification import Notification
 from ..models.logistics import Delivery, TrackingEvent
+from ..models.payment import Payment
 from ..utils.auth import jwt_required_roles
 
 orders_bp = Blueprint('orders_bp', __name__)
@@ -102,7 +103,7 @@ def update_order_status(user, order_id):
     if user.role == 'farmer' and not any(item.product.farmer_id == user.id for item in order.items):
         return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
     next_status = (request.get_json(silent=True) or {}).get('status')
-    allowed = {'PENDING': {'CONFIRMED', 'CANCELLED'}, 'CONFIRMED': {'LOGISTICS_REQUESTED', 'CANCELLED'}, 'LOGISTICS_REQUESTED': {'COMPLETED'}}
+    allowed = {'PENDING': {'CONFIRMED', 'CANCELLED'}, 'PAID': {'CONFIRMED', 'CANCELLED'}, 'CONFIRMED': {'LOGISTICS_REQUESTED', 'CANCELLED'}, 'LOGISTICS_REQUESTED': {'COMPLETED'}}
     if next_status not in allowed.get(order.status, set()):
         return jsonify({'success': False, 'message': f'Invalid transition from {order.status} to {next_status}'}), 400
     order.status = next_status
@@ -114,3 +115,20 @@ def update_order_status(user, order_id):
         db.session.add(TrackingEvent(delivery_id=delivery.id, status='AVAILABLE', note='Delivery request created'))
     db.session.commit()
     return jsonify({'success': True, 'order': order.to_dict()})
+
+
+@orders_bp.delete('/<int:order_id>')
+@jwt_required_roles('farmer', 'admin')
+def delete_order(user, order_id):
+    order = db.get_or_404(Order, order_id)
+    if user.role == 'farmer' and not any(item.product.farmer_id == user.id for item in order.items):
+        return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
+    delivery = Delivery.query.filter_by(order_id=order.id).first()
+    if delivery:
+        db.session.delete(delivery)
+    payment = Payment.query.filter_by(order_id=order.id).first()
+    if payment:
+        db.session.delete(payment)
+    db.session.delete(order)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Order deleted'})

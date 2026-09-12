@@ -1,27 +1,24 @@
-import { BarChart3, Package, Sparkles, TrendingUp, Wheat } from 'lucide-react';
+import { ArrowUpRight, BarChart3, CalendarDays, MapPin, Package, Sparkles, Wheat } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getOrders, getPrediction, getProducts } from '../../services/api';
 import { Link } from 'react-router-dom';
+import { getOrders, getPredictions, getProducts } from '../../services/api';
+import { getProductImage } from '../../utils/productImages';
+
 export default function FarmerDashboardPage() {
     const [products, setProducts] = useState([]);
-    const [prediction, setPrediction] = useState(null);
+    const [predictions, setPredictions] = useState([]);
     const [orderCount, setOrderCount] = useState(0);
     useEffect(() => {
         getProducts().then((result) => setProducts(result.items));
-        getPrediction().then((result) => setPrediction(result.prediction));
+        getPredictions().then((result) => setPredictions(result.predictions || []));
         getOrders().then((result) => setOrderCount(result.count)).catch(() => undefined);
     }, []);
-    return (<div className="farmer-page min-h-screen p-8 text-white">
-      <div className="container">
-        <p className="text-sm uppercase tracking-[0.2em] text-emerald-200/70">Farm operations</p>
-        <h1 className="mt-2 text-4xl font-black">Your farm, in one clear view.</h1>
-        <div className="mt-8 grid gap-5 md:grid-cols-4">
-          {[['Listings', products.length, Wheat], ['Orders', orderCount, Package], ['AI price', prediction ? `₹${prediction.predicted_price}` : '—', Sparkles], ['Signal', prediction ? `${Math.round(prediction.confidence * 100)}%` : '—', TrendingUp]].map(([label, value, Icon]) => (<div key={label} className="dashboard-stat card"><Icon size={19}/><p>{label}</p><strong>{value}</strong></div>))}
-        </div>
-        <div className="mt-8 flex flex-wrap gap-3"><Link className="btn-primary" to="/farmer/products">Manage products</Link><Link className="btn-secondary" to="/farmer/orders">Manage orders</Link></div><section className="mt-10 grid gap-5 lg:grid-cols-2">
-          <div className="card p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-bold">Listed produce</h2><BarChart3 className="text-emerald-300" size={20}/></div><div className="mt-4 space-y-3">{products.map((product) => <div key={product.id} className="flex items-center justify-between border-b border-emerald-300/10 pb-3 text-sm"><span>{product.name} · {product.location}</span><span className="text-emerald-200">{product.quantity} {product.unit}</span></div>)}{products.length === 0 && <p className="text-sm text-emerald-50/65">No listings found.</p>}</div></div>
-          <div className="card p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-bold">AI price guidance</h2><Sparkles className="text-emerald-300" size={20}/></div>{prediction ? <><p className="mt-4 text-3xl font-black text-emerald-200">₹{prediction.predicted_price}<span className="text-base font-normal text-emerald-50/60"> / kg</span></p><p className="mt-2 text-sm text-emerald-50/70">{prediction.crop} forecast · {Math.round(prediction.confidence * 100)}% confidence</p></> : <p className="mt-4 text-sm text-emerald-50/65">Loading forecast...</p>}</div>
-        </section>
-      </div>
-    </div>);
+    const featuredProduct = products[0];
+    return (<main className="farmer-dashboard-page"><div className="farmer-dashboard-container">
+        <div className="farmer-dashboard-topline"><span><Wheat size={14}/> FARM / OVERVIEW</span><span><CalendarDays size={14}/> 12 SEP 2026</span></div>
+        <section className="farmer-dashboard-hero"><div className="farmer-dashboard-copy"><p className="farmer-kicker">A better day at the farm starts with a clear signal.</p><h1>Make the next harvest count.</h1><p className="farmer-dashboard-lede">Your listings, orders, and market guidance gathered into one working view, so the next decision is easier to make.</p><div className="farmer-dashboard-actions"><Link className="farmer-action-primary" to="/farmer/products">Open inventory <ArrowUpRight size={17}/></Link><Link className="farmer-action-link" to="/farmer/orders">Review orders <ArrowUpRight size={16}/></Link></div></div><div className="farmer-harvest-visual"><img src={getProductImage(featuredProduct)} alt={featuredProduct ? `${featuredProduct.name} harvest` : 'Fresh farm produce'}/><div className="farmer-harvest-caption"><span>LIVE LISTING</span><strong>{featuredProduct?.name || 'Your next crop'}</strong><small>{featuredProduct ? `${featuredProduct.quantity} ${featuredProduct.unit} available` : 'Add your first product to begin'}</small></div></div></section>
+        <section className="farmer-signal-strip" aria-label="Farm overview metrics"><div><span>Active listings</span><strong>{products.length}</strong><small>available to buyers</small></div><div><span>Open orders</span><strong>{orderCount}</strong><small>ready for your attention</small></div><div><span>Market signal</span><strong>{predictions.length || '—'}</strong><small>crops analyzed separately</small></div></section>
+        <section className="farmer-dashboard-grid"><div className="farmer-inventory-panel"><div className="farmer-panel-heading"><div><span className="farmer-section-label">CURRENT INVENTORY</span><h2>What is moving today</h2></div><Link to="/farmer/products" aria-label="Open full inventory"><ArrowUpRight size={19}/></Link></div><div className="farmer-product-list">{products.slice(0, 4).map((product) => <div className="farmer-product-row" key={product.id}><img src={getProductImage(product)} alt=""/><div><strong>{product.name}</strong><span><MapPin size={13}/> {product.location}</span></div><b>{product.quantity} <small>{product.unit}</small></b></div>)}{products.length === 0 && <div className="farmer-empty-state"><Wheat size={21}/><p>No listings yet. Add your first crop to put your farm on the market.</p><Link to="/farmer/products">Add a listing</Link></div>}</div><div className="farmer-panel-footer"><BarChart3 size={16}/> Showing your four most recent listings</div></div>
+          <div className="farmer-forecast-panel"><div className="farmer-panel-heading"><div><span className="farmer-section-label">AI MARKET NOTE</span><h2>Crop-by-crop guidance</h2></div><Sparkles size={20}/></div>{predictions.length ? <div className="farmer-forecast-list">{predictions.map((prediction) => <div className="farmer-forecast-item" key={prediction.crop}><div className="farmer-forecast-item-heading"><div><strong>{prediction.crop}</strong><span>{prediction.listing_count} listing{prediction.listing_count === 1 ? '' : 's'} · {prediction.sold_quantity} kg sold</span></div><b>₹{prediction.predicted_price}<small>/kg</small></b></div><div className="farmer-confidence"><span>Confidence</span><b>{Math.round(prediction.confidence * 100)}%</b><i><em style={{ width: `${Math.round(prediction.confidence * 100)}%` }}/></i></div></div>)}</div> : <p className="farmer-forecast-note">Loading crop-by-crop market guidance...</p>}<p className="farmer-forecast-note">Each crop is calculated separately from its own listings and recorded sales.</p></div></section>
+    </div></main>);
 }

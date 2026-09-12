@@ -35,6 +35,30 @@ def price_prediction():
     })
 
 
+@ai_bp.get('/price-predictions')
+def price_predictions():
+    products = Product.query.order_by(Product.crop.asc(), Product.id.asc()).all()
+    crops = {}
+    for product in products:
+        crop_name = product.crop.strip() or product.name.strip()
+        crops.setdefault(crop_name, []).append(product)
+    predictions = []
+    for crop_name, crop_products in crops.items():
+        product_ids = [product.id for product in crop_products]
+        sold_quantity = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Product, Product.id == OrderItem.product_id).filter(Product.id.in_(product_ids)).scalar()
+        confidence = min(0.95, 0.5 + (0.08 * len(crop_products)) + (0.02 if sold_quantity else 0))
+        average_price = sum(product.price for product in crop_products) / len(crop_products)
+        predictions.append({
+            'crop': crop_name,
+            'predicted_price': round(average_price, 2),
+            'confidence': round(confidence, 2),
+            'listing_count': len(crop_products),
+            'sold_quantity': float(sold_quantity or 0),
+            'explanation': f'Based on {len(crop_products)} {crop_name} listing(s) and {sold_quantity:g} kg sold through recorded orders.',
+        })
+    return jsonify({'success': True, 'predictions': predictions})
+
+
 @ai_bp.get('/demand-forecast')
 def demand_forecast():
     crop = (request.args.get('crop') or '').strip()

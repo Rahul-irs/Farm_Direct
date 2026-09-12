@@ -101,6 +101,17 @@ def create_requirement(user):
     return jsonify({'success': True, 'requirement': requirement.to_dict()}), 201
 
 
+@partners_bp.delete('/bulk/requirements/<int:requirement_id>')
+@jwt_required_roles('bulk_buyer')
+def delete_requirement(user, requirement_id):
+    requirement = BulkRequirement.query.filter_by(id=requirement_id, buyer_id=user.id).first()
+    if not requirement:
+        return jsonify({'success': False, 'message': 'Requirement not found'}), 404
+    db.session.delete(requirement)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Requirement deleted'})
+
+
 @partners_bp.get('/bulk/requirements/<int:requirement_id>/matches')
 @jwt_required_roles('bulk_buyer')
 def requirement_matches(user, requirement_id):
