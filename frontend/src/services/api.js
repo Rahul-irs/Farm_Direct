@@ -41,6 +41,9 @@ export function getAdminOverview() {
 export function getPrediction() {
     return request('/ai/price-prediction');
 }
+export function getPredictions() {
+    return request('/ai/price-predictions');
+}
 export function addToCart(product_id, quantity = 1) {
     return request('/orders/cart/items', { method: 'POST', body: JSON.stringify({ product_id, quantity }) });
 }
@@ -145,6 +148,9 @@ export function getAdminOrders() {
 export function updateOrderStatus(orderId, status) {
     return request(`/orders/${orderId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 }
+export function deleteOrder(orderId) {
+    return request(`/orders/${orderId}`, { method: 'DELETE' });
+}
 export function updateVehicle(id, data) {
     return request(`/logistics/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
@@ -171,3 +177,5 @@ export function estimateRoute(pickup, destination) {
 }
 export function getPartnerRecords(path) { return request(`/partners/${path}`); }
 export function createPartnerRecord(path, data) { return request(`/partners/${path}`, { method: 'POST', body: JSON.stringify(data) }); }
+export function deletePartnerRecord(path, id) { return request(`/partners/${path}/${id}`, { method: 'DELETE' }); }
+export function getPartnerRequirementMatches(id) { return request(`/partners/bulk/requirements/${id}/matches`); }

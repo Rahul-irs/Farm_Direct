@@ -1,0 +1,99 @@
+FARMDIRECT AI - WORKFLOW GUIDE
+=============================
+
+This document describes the working flow of the FarmDirect application using the demo data seeded in the project.
+
+DEMO ACCOUNTS
+-------------
+Admin:              admin@farmdirect.ai
+Farmer:             farmer@farmdirect.ai
+Second farmer:      farmer2@farmdirect.ai
+Consumer:           consumer@farmdirect.ai
+FPO:                fpo@farmdirect.ai
+Field assistant:    assistant@farmdirect.ai
+Bulk buyer:         buyer@farmdirect.ai
+Logistics provider: logistics@farmdirect.ai
+Password for all accounts: demo12345
+
+LOGIN FLOW
+----------
+1. Open the app and go to the login page.
+2. Enter the demo email and password.
+3. The backend trims whitespace and validates the normalized email before login.
+4. On success, a JWT token is generated and stored locally.
+5. The role-based dashboard is loaded from the logged-in user role.
+
+CONSUMER FLOW
+-------------
+1. Login as consumer@farmdirect.ai.
+2. Open the marketplace and browse listed products.
+3. Add a product to cart.
+4. The cart keeps the product quantity and the server-side price.
+5. Place the order from the cart checkout flow.
+6. The order is created with the price calculated by the backend.
+7. Product quantity is reduced in the inventory after checkout.
+8. Payment is made through the payment route for that order.
+9. Order status moves through the lifecycle and becomes visible in orders history.
+
+FARMER FLOW
+-----------
+1. Login as farmer@farmdirect.ai.
+2. View the orders assigned to the farmer.
+3. Review the buyer order and confirm the order when the payment is complete.
+4. Confirmed orders can move to logistics request.
+5. The farmer can trigger logistics handoff after confirming dispatch.
+6. The system creates or updates delivery records tied to the order.
+
+BULK BUYER FLOW
+---------------
+1. Login as buyer@farmdirect.ai.
+2. Open the bulk buyer dashboard and view procurement requirements.
+3. Create or review bulk requirements.
+4. Use supplier matching and marketplace data to identify supply opportunities.
+5. Place bulk order requirements through the role-specific workflow.
+6. The procurement flow works with the same product, order, and payment logic used across the platform.
+
+FPO FLOW
+--------
+1. Login as fpo@farmdirect.ai.
+2. Review member farmers and aggregation records.
+3. Add or inspect FPO-ledger information for grouped produce.
+4. Use the FPO dashboard to track collective supply and member participation.
+
+LOGISTICS FLOW
+--------------
+1. Login as logistics@farmdirect.ai.
+2. Open the logistics dashboard and review the delivery queue.
+3. Accept the assigned delivery.
+4. Delivery status moves from AVAILABLE to ACCEPTED, then through vehicle/driver assignment and movement events.
+5. Tracking events reflect the delivery journey until completion.
+6. The route estimate screen helps the logistics team plan pickup and destination movement.
+
+ADMIN FLOW
+----------
+1. Login as admin@farmdirect.ai.
+2. Open the admin dashboard to review system health.
+3. View platform overview values like users, farmers, orders, and revenue.
+4. Review analytics by order status and user role.
+5. Manage users and activate or deactivate accounts.
+6. Review all products in the catalogue.
+7. Inspect all orders and their transaction status.
+8. Review audit logs for platform actions and changes.
+
+END-TO-END CHECK
+-----------------
+The project has been validated with:
+- Frontend production build
+- Backend test suite
+- Live role-based smoke test against seeded demo credentials
+
+Verified flows:
+- Login for all demo roles
+- Marketplace product access
+- Cart creation and order submission
+- Payment for orders
+- Farmer confirmation and logistics request handoff
+- Logistics delivery acceptance
+- Admin overview and management API access
+
+Status: All core functionality is working correctly with the current project state.
