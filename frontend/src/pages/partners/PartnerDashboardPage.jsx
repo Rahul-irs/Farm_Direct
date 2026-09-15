@@ -1,10 +1,16 @@
-import { ArrowLeft, BarChart3, CheckCircle2, ClipboardList, MapPin, Plus, RefreshCw, ShieldCheck, ShoppingBasket, Sparkles, Trash2, Users, Wheat } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BarChart3, Building2, CheckCircle2, ClipboardList, Factory, MapPin, PackageCheck, Plus, RefreshCw, ShieldCheck, ShoppingBasket, Sparkles, Store, Trash2, Truck, Users, Wheat } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPartnerRecord, deletePartnerRecord, getPartnerRecords, getPartnerRequirementMatches } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
 
 function BulkBuyerWorkspace() {
+    const storedUser = JSON.parse(localStorage.getItem('farmdirect_user') || '{}');
+    const fullName = storedUser.full_name || storedUser.name || '';
+    const emailLocalPart = (storedUser.email || '').split('@')[0] || 'Bulk Buyer';
+    const displayName = fullName || emailLocalPart || 'Bulk Buyer';
+    const firstName = displayName.split(/\s+/).filter(Boolean)[0] || 'Bulk Buyer';
+    const avatarInitials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'BB';
     const [records, setRecords] = useState([]);
     const [matches, setMatches] = useState({});
     const [form, setForm] = useState({ crop: '', quantity: '', location: '' });
@@ -32,13 +38,200 @@ function BulkBuyerWorkspace() {
     }
     const totalVolume = useMemo(() => records.reduce((total, record) => total + Number(record.quantity || 0), 0), [records]);
     const featuredProduct = useMemo(() => Object.values(matches).flat()[0], [matches]);
-    return <main className="bulk-buyer-page bulk-buyer-command"><div className="bulk-buyer-container">
-        <div className="bulk-buyer-breadcrumb"><Link to="/profile"><ArrowLeft size={15}/> Profile</Link><span>BUYING DESK / LIVE SOURCING</span></div>
-        <header className="bulk-buyer-command-hero"><div className="bulk-buyer-command-copy"><p className="bulk-buyer-kicker"><Sparkles size={14}/> Procurement control room</p><h1>Turn demand into supply.</h1><p>Publish the brief. Watch the network answer. Keep every destination and delivery volume accountable.</p><div className="bulk-buyer-hero-meta"><span><CheckCircle2 size={14}/> Live partner inventory</span><span><ShieldIcon /> Private buying desk</span></div></div><div className="bulk-buyer-hero-panel">{featuredProduct ? <img src={getProductImage(featuredProduct)} alt={`${featuredProduct.name} from a farm partner`}/> : <img src={getProductImage({ name: 'Tomato' })} alt="Fresh produce from FarmDirect"/>}<div className="bulk-buyer-hero-overlay"><span>NETWORK SIGNAL</span><strong>{featuredProduct?.name || 'Fresh produce'}</strong><small>{featuredProduct ? `${featuredProduct.quantity} ${featuredProduct.unit} ready near ${featuredProduct.location}` : 'Your live supply picture will appear here'}</small></div><div className="bulk-buyer-hero-index">01<span>/ supply</span></div></div></header>
-        {message && <p className="bulk-buyer-notice" role="status"><CheckCircle2 size={16}/>{message}</p>}{error && <p className="bulk-buyer-error" role="alert">{error}</p>}
-        <section className="bulk-buyer-command-stats"><div><span>Active briefs</span><strong>{records.length}</strong><small>requests in motion</small></div><div><span>Demand volume</span><strong>{totalVolume.toLocaleString('en-IN')}</strong><small>units requested</small></div><div><span>Supply matches</span><strong>{Object.values(matches).flat().length}</strong><small>farm listings found</small></div><div><span>Destinations</span><strong>{new Set(records.map((record) => record.location)).size}</strong><small>buying routes covered</small></div></section>
-        <div className="bulk-buyer-command-grid"><form className="bulk-buyer-form bulk-buyer-brief-panel" onSubmit={submit}><div className="bulk-buyer-heading"><div><span className="bulk-buyer-label">01 / PUBLISH A BRIEF</span><h2>What should we source?</h2><p className="bulk-buyer-heading-note">Your request is matched against live farm inventory.</p></div><div className="bulk-buyer-form-badge"><Plus size={18}/></div></div><div className="bulk-buyer-form-fields"><label><span>Crop or product</span><div className="bulk-buyer-input"><Wheat size={16}/><input value={form.crop} onChange={(event) => setForm({ ...form, crop: event.target.value })} placeholder="Onion, tomato, rice" required/></div></label><label><span>Quantity required</span><div className="bulk-buyer-input"><ClipboardList size={16}/><input type="number" min="0.01" step="0.01" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder="Enter volume" required/></div></label><label><span>Delivery location</span><div className="bulk-buyer-input"><MapPin size={16}/><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="City or distribution hub" required/></div></label></div><button className="bulk-buyer-submit" type="submit" disabled={loading}><Plus size={16}/> {loading ? 'Updating buying desk...' : 'Publish requirement'}</button><p className="bulk-buyer-form-note">The brief stays private to your account until you remove it.</p></form>
-            <section className="bulk-buyer-requirements bulk-buyer-queue-panel"><div className="bulk-buyer-list-heading"><div><span className="bulk-buyer-label">02 / ACTIVE QUEUE</span><h2>Requests in motion</h2><p className="bulk-buyer-heading-note">Open a requirement to compare available farm partners.</p></div><button className="bulk-buyer-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={15}/> {loading ? 'Refreshing' : 'Refresh'}</button></div><div className="bulk-buyer-list">{records.map((record, index) => <article className="bulk-buyer-record" key={record.id}><div className="bulk-buyer-record-number">0{index + 1}</div><div className="bulk-buyer-record-main"><div><h3>{record.crop}</h3><span className="bulk-buyer-open">{record.status || 'OPEN'}</span></div><p><ClipboardList size={14}/> {record.quantity} units <i>·</i> <MapPin size={14}/> {record.location}</p></div><div className="bulk-buyer-record-actions"><button type="button" title="Remove requirement" aria-label={`Delete ${record.crop} requirement`} onClick={() => remove(record)}><Trash2 size={15}/></button></div><div className="bulk-buyer-matches"><div className="bulk-buyer-matches-heading"><span>AVAILABLE FARM PARTNERS</span><b>{matches[record.id]?.length || 0} matches</b></div>{matches[record.id]?.length ? <div className="bulk-buyer-match-list">{matches[record.id].slice(0, 4).map((product) => <div className="bulk-buyer-match" key={product.id}><img src={getProductImage(product)} alt=""/><div><strong>{product.name}</strong><span>{product.quantity} {product.unit} · {product.location}</span></div><b>₹{product.price}<small>/{product.unit}</small></b></div>)}</div> : <p className="bulk-buyer-no-match">No available farm listing meets this volume yet.</p>}</div></article>)}{records.length === 0 && <div className="bulk-buyer-empty"><ShoppingBasket size={32}/><h3>Your buying queue is clear</h3><p>Publish a requirement to start sourcing from verified farm partners.</p></div>}</div></section>
+    const buyerCategories = [
+        { title: 'Government / Institutional Buyers', description: 'Bulk orders for public procurement, institutions, and catering needs.', Icon: Building2 },
+        { title: 'Retailers', description: 'Multi-location orders with predictable supply planning and fast replenishment.', Icon: Store },
+        { title: 'Distributors', description: 'Steady volumes, route coverage, and reliable sourcing across growing markets.', Icon: Factory },
+        { title: 'Organizations', description: 'Consistent supply for schools, canteens, and network operations.', Icon: Users },
+        { title: 'Other Bulk Purchasers', description: 'Flexible procurement for managed demand and multi-vendor buying programs.', Icon: PackageCheck },
+    ];
+    const benefits = [
+        { title: 'Better procurement', description: 'Compare supply against demand in one live operating view.', Icon: ClipboardList },
+        { title: 'Large-volume ordering', description: 'Set high-volume requirements with confidence and clarity.', Icon: ShoppingBasket },
+        { title: 'Fast order management', description: 'Keep quantities, routes, and partner matches coordinated.', Icon: Truck },
+        { title: 'Transparent process', description: 'Every requirement stays visible and easy to manage.', Icon: ShieldCheck },
+    ];
+    const workflowSteps = [
+        'Select products',
+        'Specify quantity',
+        'Review bulk order',
+        'Delivery coordination',
+        'Secure payment',
+    ];
+    const scrollToBrief = () => {
+        const formElement = document.getElementById('bulk-buyer-brief-form');
+        if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    return <main className="bulk-buyer-page"><div className="bulk-buyer-shell">
+        <aside className="bulk-buyer-sidebar">
+            <div className="bulk-buyer-profile">
+                <div className="bulk-buyer-avatar"><span>{avatarInitials}</span></div>
+                <div className="bulk-buyer-profile-meta">
+                    <strong>{displayName}</strong>
+                    <small>Bulk buyer desk</small>
+                </div>
+            </div>
+            <nav className="bulk-buyer-sidebar-nav" aria-label="Bulk buyer navigation">
+                <Link className="bulk-buyer-nav-item active" to="/dashboard/bulk-buyer"><ShoppingBasket size={16}/> Dashboard</Link>
+                <Link className="bulk-buyer-nav-item" to="/profile"><ArrowLeft size={16}/> Profile</Link>
+                <button className="bulk-buyer-nav-item bulk-buyer-nav-button" type="button"><ClipboardList size={16}/> Requirements</button>
+                <button className="bulk-buyer-nav-item bulk-buyer-nav-button" type="button"><ShieldIcon /> Compliance</button>
+            </nav>
+            <div className="bulk-buyer-sidebar-foot">
+                <div className="bulk-buyer-pill"><CheckCircle2 size={14}/> Live sourcing</div>
+            </div>
+        </aside>
+        <div className="bulk-buyer-main-panel">
+            <header className="bulk-buyer-toolbar">
+                <div className="bulk-buyer-toolbar-copy">
+                    <span className="bulk-buyer-kicker"><Sparkles size={14}/> Procurement control room</span>
+                    <h1>Good Morning, {firstName}.</h1>
+                    <p>Connecting farmers directly to buyers.</p>
+                </div>
+                <div className="bulk-buyer-toolbar-actions">
+                    <button type="button" className="bulk-buyer-icon-button" aria-label="Refresh buying desk" onClick={load} disabled={loading}><RefreshCw size={15}/></button>
+                    <button type="button" className="bulk-buyer-icon-button" aria-label="Notifications"><ShieldCheck size={16}/></button>
+                    <button type="button" className="bulk-buyer-icon-button" aria-label="Settings"><Plus size={16}/></button>
+                </div>
+            </header>
+
+            <section className="bulk-buyer-hero">
+                <div className="bulk-buyer-hero-copy">
+                    <span className="bulk-buyer-hero-badge"><Sparkles size={14}/> Bulk procurement</span>
+                    <h2>Bulk Buying Made Simple</h2>
+                    <p>Discover trusted supply, manage large-volume requirements, and keep your ordering process efficient from sourcing to delivery.</p>
+                    <div className="bulk-buyer-hero-actions">
+                        <button type="button" className="bulk-buyer-primary-cta" onClick={scrollToBrief}>Start Bulk Order <ArrowRight size={16}/></button>
+                        <div className="bulk-buyer-mini-metric"><span>Live supply</span><strong>{Object.values(matches).flat().length}</strong></div>
+                    </div>
+                </div>
+                <div className="bulk-buyer-hero-visual" aria-hidden="true">
+                    <div className="bulk-buyer-floating-card bulk-buyer-floating-card--top">
+                        <span>Procured</span>
+                        <strong>{totalVolume.toLocaleString('en-IN')}</strong>
+                        <small>units this cycle</small>
+                    </div>
+                    <div className="bulk-buyer-hero-panel">
+                        {featuredProduct ? <img src={getProductImage(featuredProduct)} alt={`${featuredProduct.name} from a farm partner`}/> : <img src={getProductImage({ name: 'Tomato' })} alt="Fresh produce from FarmDirect"/>}
+                    </div>
+                    <div className="bulk-buyer-floating-card bulk-buyer-floating-card--bottom">
+                        <span>Best match</span>
+                        <strong>{featuredProduct?.name || 'Fresh produce'}</strong>
+                        <small>{featuredProduct ? `${featuredProduct.location}` : 'Regional partner'}</small>
+                    </div>
+                </div>
+            </section>
+
+            <section className="bulk-buyer-category-panel">
+                <div className="bulk-buyer-section-head">
+                    <span className="bulk-buyer-kicker">Buyer segments</span>
+                    <h3>Built for every bulk buyer</h3>
+                </div>
+                <div className="bulk-buyer-categories">
+                    {buyerCategories.map(({ title, description, Icon }, index) => (
+                        <article className="bulk-buyer-category-card" key={title} style={{ animationDelay: `${index * 90}ms` }}>
+                            <div className="bulk-buyer-category-icon"><Icon size={18}/></div>
+                            <h4>{title}</h4>
+                            <p>{description}</p>
+                        </article>
+                    ))}
+                </div>
+            </section>
+
+            {message && <p className="bulk-buyer-notice" role="status"><CheckCircle2 size={16}/>{message}</p>}{error && <p className="bulk-buyer-error" role="alert">{error}</p>}
+
+            <section className="bulk-buyer-command-stats">
+                <div className="bulk-buyer-stat-card bulk-buyer-stat-card--primary"><span>Active briefs</span><strong>{records.length}</strong><small>requests in motion</small></div>
+                <div className="bulk-buyer-stat-card"><span>Demand volume</span><strong>{totalVolume.toLocaleString('en-IN')}</strong><small>units requested</small></div>
+                <div className="bulk-buyer-stat-card"><span>Supply matches</span><strong>{Object.values(matches).flat().length}</strong><small>farm listings found</small></div>
+                <div className="bulk-buyer-stat-card"><span>Destinations</span><strong>{new Set(records.map((record) => record.location)).size}</strong><small>buying routes covered</small></div>
+            </section>
+
+            <section className="bulk-buyer-workflow">
+                <div className="bulk-buyer-section-head">
+                    <span className="bulk-buyer-kicker">Procurement flow</span>
+                    <h3>How bulk buying works</h3>
+                </div>
+                <div className="bulk-buyer-workflow-steps">
+                    {workflowSteps.map((step, index) => (
+                        <div className="bulk-buyer-workflow-step" key={step} style={{ animationDelay: `${index * 100}ms` }}>
+                            <div className="bulk-buyer-workflow-icon">0{index + 1}</div>
+                            <span>{step}</span>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="bulk-buyer-benefits">
+                {benefits.map(({ title, description, Icon }, index) => (
+                    <article className="bulk-buyer-benefit-card" key={title} style={{ animationDelay: `${index * 120}ms` }}>
+                        <div className="bulk-buyer-benefit-icon"><Icon size={18}/></div>
+                        <h4>{title}</h4>
+                        <p>{description}</p>
+                    </article>
+                ))}
+            </section>
+
+            <div className="bulk-buyer-command-grid">
+                <form id="bulk-buyer-brief-form" className="bulk-buyer-form bulk-buyer-brief-panel" onSubmit={submit}>
+                    <div className="bulk-buyer-heading">
+                        <div>
+                            <span className="bulk-buyer-label">01 / Publish a brief</span>
+                            <h2>What should we source?</h2>
+                        </div>
+                        <div className="bulk-buyer-form-badge"><Plus size={18}/></div>
+                    </div>
+                    <div className="bulk-buyer-form-fields">
+                        <label>
+                            <span>Crop or product</span>
+                            <div className="bulk-buyer-input"><Wheat size={16}/><input value={form.crop} onChange={(event) => setForm({ ...form, crop: event.target.value })} placeholder="Onion, tomato, rice" required/></div>
+                        </label>
+                        <label>
+                            <span>Quantity required</span>
+                            <div className="bulk-buyer-input"><ClipboardList size={16}/><input type="number" min="0.01" step="0.01" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder="Enter volume" required/></div>
+                        </label>
+                        <label>
+                            <span>Delivery location</span>
+                            <div className="bulk-buyer-input"><MapPin size={16}/><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="City or distribution hub" required/></div>
+                        </label>
+                    </div>
+                    <button className="bulk-buyer-submit" type="submit" disabled={loading}><Plus size={16}/> {loading ? 'Updating buying desk...' : 'Publish requirement'}</button>
+                    <p className="bulk-buyer-form-note">The brief stays private to your account until you remove it.</p>
+                </form>
+
+                <section className="bulk-buyer-requirements bulk-buyer-queue-panel">
+                    <div className="bulk-buyer-list-heading">
+                        <div>
+                            <span className="bulk-buyer-label">02 / Active queue</span>
+                            <h2>Requests in motion</h2>
+                        </div>
+                        <button className="bulk-buyer-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={15}/> {loading ? 'Refreshing' : 'Refresh'}</button>
+                    </div>
+                    <div className="bulk-buyer-list">
+                        {records.map((record, index) => <article className="bulk-buyer-record" key={record.id}>
+                            <div className="bulk-buyer-record-number">0{index + 1}</div>
+                            <div className="bulk-buyer-record-main">
+                                <div>
+                                    <h3>{record.crop}</h3>
+                                    <span className="bulk-buyer-open">{record.status || 'OPEN'}</span>
+                                </div>
+                                <p><ClipboardList size={14}/> {record.quantity} units <i>·</i> <MapPin size={14}/> {record.location}</p>
+                            </div>
+                            <div className="bulk-buyer-record-actions">
+                                <button type="button" title="Remove requirement" aria-label={`Delete ${record.crop} requirement`} onClick={() => remove(record)}><Trash2 size={15}/></button>
+                            </div>
+                            <div className="bulk-buyer-matches">
+                                <div className="bulk-buyer-matches-heading"><span>Available farm partners</span><b>{matches[record.id]?.length || 0} matches</b></div>
+                                {matches[record.id]?.length ? <div className="bulk-buyer-match-list">{matches[record.id].slice(0, 4).map((product) => <div className="bulk-buyer-match" key={product.id}><img src={getProductImage(product)} alt=""/><div><strong>{product.name}</strong><span>{product.quantity} {product.unit} · {product.location}</span></div><b>₹{product.price}<small>/{product.unit}</small></b></div>)}</div> : <p className="bulk-buyer-no-match">No available farm listing meets this volume yet.</p>}
+                            </div>
+                        </article>)}
+                        {records.length === 0 && <div className="bulk-buyer-empty"><ShoppingBasket size={32}/><h3>Your buying queue is clear</h3><p>Publish a requirement to start sourcing from verified farm partners.</p></div>}
+                    </div>
+                </section>
+            </div>
         </div>
     </div></main>;
 }

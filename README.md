@@ -81,6 +81,91 @@ Frontend:
 - Consumer: consumer@farmdirect.ai / consumer123
 - Full presentation dataset: all accounts use `demo12345` after running `backend/seed.py`.
 
+## Workflow Guide
+
+The application is seeded with demo data for each role. Use these accounts to test the app end-to-end after running `python backend/seed.py`.
+
+### Demo accounts
+
+- Admin: `admin@farmdirect.ai` / `demo12345`
+- Farmer: `farmer@farmdirect.ai` / `demo12345`
+- Second farmer: `farmer2@farmdirect.ai` / `demo12345`
+- Consumer: `consumer@farmdirect.ai` / `demo12345`
+- FPO: `fpo@farmdirect.ai` / `demo12345`
+- Field assistant: `assistant@farmdirect.ai` / `demo12345`
+- Bulk buyer: `buyer@farmdirect.ai` / `demo12345`
+- Logistics provider: `logistics@farmdirect.ai` / `demo12345`
+
+### Login flow
+
+1. Open the app and go to the login page.
+2. Enter one of the demo emails and the password `demo12345`.
+3. The backend normalizes and validates the email before login.
+4. On success, the JWT token is stored locally and the role-based dashboard loads automatically.
+
+### Consumer flow
+
+1. Log in as `consumer@farmdirect.ai`.
+2. Open the marketplace and browse available products.
+3. Add items to the cart.
+4. Proceed through checkout and place the order.
+5. The backend calculates the full order amount and reduces inventory after checkout.
+6. Complete the payment flow and review the order in the order history.
+
+### Farmer flow
+
+1. Log in as `farmer@farmdirect.ai`.
+2. Review orders assigned to the farmer.
+3. Confirm the order once payment is complete.
+4. Trigger the logistics handoff when dispatch is ready.
+5. Track delivery and order progression through the logistics lifecycle.
+
+### Bulk buyer flow
+
+1. Log in as `buyer@farmdirect.ai`.
+2. Open the bulk buyer dashboard.
+3. Create or review bulk requirements.
+4. Use supplier matching and marketplace data to identify supply opportunities.
+5. Place bulk requirements through the procurement workflow.
+6. Continue using the same product, order, and payment logic used across the platform.
+
+### FPO flow
+
+1. Log in as `fpo@farmdirect.ai`.
+2. Review collective supply records and member farms.
+3. Inspect aggregation information and supplier activity.
+4. Track member participation and group supply coordination.
+
+### Logistics flow
+
+1. Log in as `logistics@farmdirect.ai`.
+2. Open the logistics dashboard and view the delivery queue.
+3. Accept an assigned delivery.
+4. Move the delivery through vehicle and driver assignment and status updates.
+5. Use route estimation and tracking screens to monitor the shipment until completion.
+
+### Admin flow
+
+1. Log in as `admin@farmdirect.ai`.
+2. Open the admin dashboard to review users, orders, revenue, and system health.
+3. Inspect products, order state, and audit logs.
+4. Manage platform and user-level settings from the admin workspace.
+
+### End-to-end validation
+
+The project has been validated with the frontend production build, backend test suite, and live role-based smoke tests against the seeded demo credentials.
+
+Verified flows include:
+
+- Login for all demo roles
+- Marketplace browsing and cart creation
+- Order submission and payment completion
+- Farmer confirmation and logistics handoff
+- Logistics delivery acceptance and tracking
+- Admin overview and management access
+
+Status: all core functionality is working correctly with the current project state.
+
 ## API Documentation
 
 Implemented endpoints include `/api/auth`, `/api/products`, `/api/orders`, `/api/payments`, `/api/notifications`, `/api/reviews`, `/api/logistics`, `/api/admin/overview`, and `/api/ai`. The API returns JSON errors and protects mutations with JWT role checks.
