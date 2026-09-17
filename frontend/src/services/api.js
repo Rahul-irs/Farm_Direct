@@ -35,14 +35,28 @@ export function refreshAccessToken(refresh_token) {
 export function getProducts() {
     return request('/products/');
 }
+export function getMyProducts(search = '') {
+    const query = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : '';
+    return request(`/products/mine${query}`);
+}
+export function getFarmerInventoryOverview() {
+    return request('/products/overview');
+}
 export function getAdminOverview() {
     return request('/admin/overview');
 }
-export function getPrediction() {
-    return request('/ai/price-prediction');
+export function getPrediction(crop = '', location = '') {
+    const params = new URLSearchParams();
+    if (crop.trim()) params.set('crop', crop.trim());
+    if (location.trim()) params.set('location', location.trim());
+    const query = params.toString();
+    return request(`/ai/price-prediction${query ? `?${query}` : ''}`);
 }
 export function getPredictions() {
     return request('/ai/price-predictions');
+}
+export function getFarmerInsights() {
+    return request('/ai/farmer-insights');
 }
 export function addToCart(product_id, quantity = 1) {
     return request('/orders/cart/items', { method: 'POST', body: JSON.stringify({ product_id, quantity }) });
@@ -65,6 +79,9 @@ export function getTracking(orderId) {
 export function markNotificationRead(id) {
     return request(`/notifications/${id}/read`, { method: 'POST' });
 }
+export function getWishlist() { return request('/wishlist/'); }
+export function addToWishlist(productId) { return request(`/wishlist/${productId}`, { method: 'POST' }); }
+export function removeFromWishlist(productId) { return request(`/wishlist/${productId}`, { method: 'DELETE' }); }
 export function getReviews(productId) {
     return request(`/reviews/products/${productId}`);
 }
@@ -103,6 +120,9 @@ export function payForOrder(orderId) {
 export function getPayments() {
     return request('/payments/');
 }
+export function getFarmerPaymentSummary() {
+    return request('/payments/farmer/summary');
+}
 export function getNotifications() {
     return request('/notifications/');
 }
@@ -127,8 +147,8 @@ export function getVehicles() {
 export function getDrivers() {
     return request('/logistics/drivers');
 }
-export function getDemandForecast(crop) {
-    return request(`/ai/demand-forecast${crop ? `?crop=${encodeURIComponent(crop)}` : ''}`);
+export function getDemandForecast(crop = '') {
+    return request(`/ai/demand-forecast${crop.trim() ? `?crop=${encodeURIComponent(crop.trim())}` : ''}`);
 }
 export function getSupplierMatches(crop, quantity = 0) {
     return request(`/ai/supplier-matches?crop=${encodeURIComponent(crop || '')}&quantity=${quantity}`);

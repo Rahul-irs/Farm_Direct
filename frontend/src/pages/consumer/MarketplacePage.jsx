@@ -1,31 +1,231 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, MapPin, PackageCheck, Search, ShoppingCart, SlidersHorizontal, Sparkles, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { addToCart, getProducts } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
 
 export default function MarketplacePage() {
+    const [searchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
-    const [search, setSearch] = useState('');
-    const [category, setCategory] = useState('All');
+    const [search, setSearch] = useState(searchParams.get('search') || '');
+    const [category, setCategory] = useState(searchParams.get('category') || 'All');
     const [sort, setSort] = useState('featured');
     const [status, setStatus] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(true);
-    useEffect(() => { getProducts().then((result) => setProducts(result.items || [])).catch(() => setStatus({ type: 'error', text: 'Unable to load marketplace. Try again shortly.' })).finally(() => setLoading(false)); }, []);
+
+    useEffect(() => {
+        getProducts()
+            .then((result) => setProducts(result.items || []))
+            .catch(() => setStatus({ type: 'error', text: 'Unable to load marketplace. Try again shortly.' }))
+            .finally(() => setLoading(false));
+    }, []);
+
     const categories = useMemo(() => ['All', ...new Set(products.map((product) => product.category).filter(Boolean))], [products]);
+
     const visible = useMemo(() => {
         const query = search.trim().toLowerCase();
-        return products.filter((product) => category === 'All' || product.category === category).filter((product) => !query || `${product.name} ${product.crop} ${product.location} ${product.quality}`.toLowerCase().includes(query)).sort((first, second) => sort === 'price-low' ? first.price - second.price : sort === 'price-high' ? second.price - first.price : first.name.localeCompare(second.name));
+        return products
+            .filter((product) => category === 'All' || product.category === category)
+            .filter((product) => !query || `${product.name} ${product.crop} ${product.location} ${product.quality}`.toLowerCase().includes(query))
+            .sort((first, second) => {
+                if (sort === 'price-low') return first.price - second.price;
+                if (sort === 'price-high') return second.price - first.price;
+                return first.name.localeCompare(second.name);
+            });
     }, [category, products, search, sort]);
+
     async function handleAdd(product) {
-        try { await addToCart(product.id); setStatus({ type: 'success', text: `${product.name} added to your cart.` }); }
-        catch (error) { setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Unable to add item.' }); }
+        try {
+            await addToCart(product.id);
+            setStatus({ type: 'success', text: `${product.name} added to your cart.` });
+        } catch (error) {
+            setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Unable to add item.' });
+        }
     }
-    return <main className="marketplace-page min-h-screen p-6 text-white sm:p-8"><div className="container">
-      <div className="flex flex-wrap items-center justify-between gap-4"><Link className="inline-flex items-center gap-2 text-sm text-emerald-200" to="/dashboard/consumer"><ArrowRight className="rotate-180" size={15}/> Dashboard</Link><Link className="btn-secondary" to="/cart"><ShoppingCart size={16}/> View cart</Link></div>
-      <section className="marketplace-heading mt-10"><div><p className="eyebrow inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"><Sparkles size={14}/> Fresh network</p><h1 className="mt-4 max-w-3xl text-4xl font-black md:text-6xl">Source produce with a clearer chain of custody.</h1><p className="mt-4 max-w-2xl text-base leading-7 text-emerald-50/70">Browse current listings from FarmDirect partners, compare supply, and move from discovery to cart in one step.</p></div><div className="marketplace-count"><PackageCheck size={22}/><strong>{products.length}</strong><span>live listings</span></div></section>
-      <section className="marketplace-toolbar mt-8" aria-label="Marketplace filters"><label className="marketplace-search"><Search size={18}/><span className="sr-only">Search produce</span><input placeholder="Search produce, crop, location..." value={search} onChange={(event) => setSearch(event.target.value)}/></label><div className="marketplace-select"><SlidersHorizontal size={16}/><label className="sr-only" htmlFor="category">Category</label><select id="category" value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></div><div className="marketplace-select"><label className="sr-only" htmlFor="sort">Sort listings</label><select id="sort" value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Sort: featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div></section>
-      {status.text && <p className={`mt-4 text-sm ${status.type === 'error' ? 'text-rose-300' : 'text-emerald-200'}`} role={status.type === 'error' ? 'alert' : 'status'}>{status.text}</p>}
-      {loading ? <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((item) => <div className="marketplace-skeleton card h-[390px]" key={item}/>)}</div> : <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{visible.map((product) => <article className="product-card card overflow-hidden p-0" key={product.id}><div className="product-card-image"><img src={getProductImage(product)} alt={`${product.name} produce from ${product.location || 'a FarmDirect partner'}`}/><span><Star size={13}/> {product.quality || 'Listed quality'}</span></div><div className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-200/70">{product.category || 'Produce'}</p><h2 className="mt-2 text-2xl font-bold">{product.name}</h2></div><p className="text-right text-xl font-black text-emerald-200">₹{product.price}<small className="block text-xs font-normal text-emerald-50/60">per {product.unit}</small></p></div><div className="mt-5 flex flex-wrap gap-2 text-xs text-emerald-50/65"><span><MapPin size={13}/> {product.location || 'Location pending'}</span><span><PackageCheck size={13}/> {product.quantity} {product.unit} available</span></div><button className="btn-primary mt-6 w-full" type="button" onClick={() => handleAdd(product)}><ShoppingCart size={16}/> Add to cart</button></div></article>)}{visible.length === 0 && <div className="empty-state card md:col-span-2 lg:col-span-3"><PackageCheck size={34}/><h2>No matching produce</h2><p>Try another crop, location, or category.</p><button className="btn-secondary" type="button" onClick={() => { setSearch(''); setCategory('All'); }}>Clear filters</button></div>}</div>}
-    </div></main>;
+
+    const featuredCategories = ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic'];
+
+    return (
+        <main className="marketplace-page">
+            <div className="container">
+                <div className="marketplace-shell">
+                    <header className="marketplace-topbar">
+                        <div className="marketplace-brand-wrap">
+                            <div className="marketplace-brand-mark">FD</div>
+                            <div>
+                                <span className="marketplace-brand-label">FarmDirect AI</span>
+                                <h1>Marketplace</h1>
+                            </div>
+                        </div>
+
+                        <div className="marketplace-top-actions">
+                            <div className="marketplace-stat-compact">
+                                <strong>{products.length}</strong>
+                                <span>Live listings</span>
+                            </div>
+                            <Link className="marketplace-cart-button" to="/cart">
+                                <ShoppingCart size={15} />
+                                <span>Cart</span>
+                            </Link>
+                        </div>
+                    </header>
+
+                    <div className="marketplace-banner">
+                        <div className="marketplace-banner-copy">
+                            <span className="marketplace-badge"><Sparkles size={12} /> Fresh network</span>
+                            <h2>Source produce with a clearer chain of custody.</h2>
+                            <p>Browse verified listings from partner farms, compare supply, and move from discovery to cart in one step.</p>
+                        </div>
+
+                        <div className="marketplace-banner-media" aria-label="Fresh farm produce">
+                            <img
+                                src="https://images.unsplash.com/photo-1464226184884-fa52ac9fcf8a?auto=format&fit=crop&w=800&q=80"
+                                alt="Fresh produce from partner farms"
+                            />
+                            <div className="marketplace-banner-chip">
+                                <span>Verified farms</span>
+                                <strong>312 active partners</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="marketplace-toolbar" aria-label="Marketplace filters">
+                        <label className="marketplace-search">
+                            <Search size={16} />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                placeholder="Search produce, crop, location..."
+                            />
+                        </label>
+
+                        <div className="marketplace-filter-pair">
+                            <div className="marketplace-select">
+                                <SlidersHorizontal size={15} />
+                                <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                                    {categories.map((item) => (
+                                        <option key={item} value={item}>{item}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="marketplace-select">
+                                <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                                    <option value="featured">Featured</option>
+                                    <option value="price-low">Price: low to high</option>
+                                    <option value="price-high">Price: high to low</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {status.text && (
+                        <p className={`marketplace-status ${status.type === 'error' ? 'is-error' : 'is-success'}`} role={status.type === 'error' ? 'alert' : 'status'}>
+                            {status.text}
+                        </p>
+                    )}
+
+                    <div className="marketplace-main">
+                        <aside className="marketplace-sidebar card">
+                            <div className="marketplace-sidebar-head">
+                                <span>Quick picks</span>
+                                <Link to="/dashboard/consumer">Dashboard <ArrowRight size={13} /></Link>
+                            </div>
+
+                            <div className="marketplace-category-list">
+                                {featuredCategories.map((item) => (
+                                    <button
+                                        key={item}
+                                        type="button"
+                                        className={`marketplace-category-pill ${category === item ? 'is-active' : ''}`}
+                                        onClick={() => setCategory(item)}
+                                    >
+                                        {item}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="marketplace-sidebar-metrics">
+                                <div className="marketplace-mini-card">
+                                    <strong>{products.length}</strong>
+                                    <span>Available</span>
+                                </div>
+                                <div className="marketplace-mini-card">
+                                    <strong>{Math.max(1, Math.min(12, products.length))}</strong>
+                                    <span>Fresh this week</span>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <section className="marketplace-product-panel">
+                            {loading ? (
+                                <div className="marketplace-product-grid">
+                                    {[1, 2, 3, 4].map((item) => (
+                                        <div className="marketplace-skeleton" key={item} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="marketplace-product-grid">
+                                    {visible.map((product) => (
+                                        <article className="marketplace-product-card" key={product.id}>
+                                            <Link to={`/products/${product.id}`}>
+                                                <div className="marketplace-product-image">
+                                                    <img src={getProductImage(product)} alt={`${product.name} produce from ${product.location || 'a FarmDirect partner'}`} />
+                                                    <span className="marketplace-product-tag">
+                                                        <Star size={11} />
+                                                        {product.quality || 'Farm fresh'}
+                                                    </span>
+                                                </div>
+                                            </Link>
+
+                                            <div className="marketplace-product-body">
+                                                <div className="marketplace-product-header">
+                                                    <div className="marketplace-product-info">
+                                                        <span className="marketplace-product-category">{product.category || 'Produce'}</span>
+                                                        <h3>{product.name}</h3>
+                                                    </div>
+                                                    <strong>
+                                                        ₹{product.price}
+                                                        <small>/{product.unit}</small>
+                                                    </strong>
+                                                </div>
+
+                                                <div className="marketplace-product-meta">
+                                                    <span><MapPin size={12} /> {product.location || 'Location pending'}</span>
+                                                    <span><PackageCheck size={12} /> {product.quantity} {product.unit}</span>
+                                                </div>
+
+                                                <button type="button" onClick={() => handleAdd(product)}>
+                                                    <ShoppingCart size={14} />
+                                                    Add to cart
+                                                </button>
+                                            </div>
+                                        </article>
+                                    ))}
+
+                                    {visible.length === 0 && (
+                                        <div className="marketplace-empty-state">
+                                            <PackageCheck size={30} />
+                                            <h3>No matching produce</h3>
+                                            <p>Try another crop, location, or category.</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSearch('');
+                                                    setCategory('All');
+                                                }}
+                                            >
+                                                Clear filters
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    );
 }

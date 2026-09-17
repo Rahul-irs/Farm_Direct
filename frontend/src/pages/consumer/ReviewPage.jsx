@@ -1,6 +1,10 @@
+import { ArrowLeft, Star } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createReview } from '../../services/api';
+
+const sampleImage = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80';
+
 export default function ReviewPage() {
     const navigate = useNavigate();
     const [params] = useSearchParams();
@@ -9,12 +13,74 @@ export default function ReviewPage() {
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
     const [error, setError] = useState('');
-    async function submit(event) { event.preventDefault(); try {
-        await createReview({ product_id: productId, order_id: orderId, rating, comment });
-        navigate('/orders');
+
+    async function submit(event) {
+        event.preventDefault();
+        try {
+            await createReview({ product_id: productId, order_id: orderId, rating, comment });
+            navigate('/orders');
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : 'Unable to submit review');
+        }
     }
-    catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : 'Unable to submit review');
-    } }
-    return <main className="min-h-screen p-6 text-white"><div className="container max-w-xl"><Link className="text-sm text-emerald-200" to="/orders">Orders</Link><h1 className="mt-6 text-4xl font-black">Review your purchase</h1><form className="card mt-6 space-y-5 p-6" onSubmit={submit}><label className="block"><span className="mb-2 block text-sm text-emerald-100/80">Rating</span><select className="w-full rounded-xl border border-emerald-400/20 bg-slate-950/60 px-4 py-3" value={rating} onChange={(event) => setRating(Number(event.target.value))}><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Average</option><option value="2">2 - Poor</option><option value="1">1 - Bad</option></select></label><label className="block"><span className="mb-2 block text-sm text-emerald-100/80">Comment</span><textarea className="min-h-32 w-full rounded-xl border border-emerald-400/20 bg-slate-950/60 px-4 py-3" value={comment} onChange={(event) => setComment(event.target.value)}/></label>{error && <p className="text-sm text-rose-300" role="alert">{error}</p>}<button className="btn-primary" type="submit">Submit review</button></form></div></main>;
+
+    return (
+        <main className="consumer-review-page">
+            <div className="consumer-review-shell">
+                <Link className="consumer-review-back" to="/orders">
+                    <ArrowLeft size={15} />
+                    Back to orders
+                </Link>
+
+                <section className="consumer-review-card">
+                    <div className="consumer-review-product">
+                        <img src={sampleImage} alt="Farm produce" />
+                        <div className="consumer-review-product-copy">
+                            <span>Fresh harvest</span>
+                            <h1>How was your order?</h1>
+                            <p>We’d love to hear about the quality, freshness, and delivery experience.</p>
+                        </div>
+                    </div>
+
+                    <form className="consumer-review-form" onSubmit={submit}>
+                        <div className="consumer-review-rating-wrap">
+                            <span className="consumer-review-label">Your rating</span>
+                            <div className="consumer-review-stars" aria-label="Rating picker">
+                                {[1, 2, 3, 4, 5].map((value) => (
+                                    <button
+                                        key={value}
+                                        type="button"
+                                        className={value <= rating ? 'is-active' : ''}
+                                        onClick={() => setRating(value)}
+                                        aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
+                                    >
+                                        <Star size={18} fill="currentColor" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <label className="consumer-review-field">
+                            <span className="consumer-review-label">Review details</span>
+                            <textarea
+                                value={comment}
+                                onChange={(event) => setComment(event.target.value)}
+                                placeholder="Share what stood out about the produce, packaging, and delivery experience..."
+                            />
+                        </label>
+
+                        {error && (
+                            <p className="consumer-review-error" role="alert">
+                                {error}
+                            </p>
+                        )}
+
+                        <button type="submit" className="consumer-review-submit">
+                            Submit review
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </main>
+    );
 }

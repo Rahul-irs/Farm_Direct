@@ -178,6 +178,8 @@ def tracking(user, order_id):
         return jsonify({'success': False, 'message': 'Tracking is not available yet'}), 404
     if user.role == 'consumer' and delivery.order.customer_id != user.id:
         return jsonify({'success': False, 'message': 'You do not have access to this delivery'}), 403
+    if user.role == 'farmer' and not any(item.product.farmer_id == user.id for item in delivery.order.items):
+        return jsonify({'success': False, 'message': 'You do not have access to this delivery'}), 403
     if user.role == 'logistics_provider' and delivery.provider_id not in (None, user.id):
         return jsonify({'success': False, 'message': 'You do not manage this delivery'}), 403
     return jsonify({'success': True, 'delivery': delivery.to_dict()})

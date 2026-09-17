@@ -12,8 +12,11 @@ class User(db.Model):
     role = db.Column(db.String(40), default='consumer', nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
+    farm_profile = db.Column(db.JSON, nullable=True, default=dict)
+    profile_data = db.Column(db.JSON, nullable=True, default=dict)
 
     def to_dict(self):
+        profile_data = self.profile_data or {}
         return {
             'id': self.id,
             'full_name': self.full_name,
@@ -22,4 +25,13 @@ class User(db.Model):
             'role': self.role,
             'is_active': self.is_active,
             'is_verified': self.is_verified,
+            'farm_profile': self.farm_profile or {},
+            'profile_data': profile_data,
+            'address': profile_data.get('address'),
+            'village': profile_data.get('village'),
+            'mandal': profile_data.get('mandal'),
+            'district': profile_data.get('district'),
+            'state': profile_data.get('state'),
+            'language': profile_data.get('language'),
+            'bank_details': profile_data.get('bank_details'),
         }

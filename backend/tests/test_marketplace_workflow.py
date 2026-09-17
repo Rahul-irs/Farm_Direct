@@ -33,7 +33,7 @@ def test_checkout_uses_server_price_and_reduces_inventory(monkeypatch):
         assert db.session.get(Product, product_id).quantity == 7
 
 
-def test_farmer_can_delete_paid_order(monkeypatch):
+def test_farmer_cannot_delete_paid_order(monkeypatch):
     monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
     app = create_app()
     app.config.update(TESTING=True)
@@ -59,7 +59,8 @@ def test_farmer_can_delete_paid_order(monkeypatch):
     farmer_token = client.post('/api/auth/login', json={'email': 'farmer-delete@test.com', 'password': 'password123'}).get_json()['token']
     response = client.delete(f"/api/orders/{order['id']}", headers={'Authorization': f'Bearer {farmer_token}'})
 
-    assert response.status_code == 200
+    assert response.status_code == 409
+    assert response.get_json()['message'] == 'Processed orders are retained for fulfilment and earnings history'
 
 
 def test_login_accepts_copied_demo_email_with_whitespace(monkeypatch):
@@ -77,3 +78,68 @@ def test_login_accepts_copied_demo_email_with_whitespace(monkeypatch):
 
     assert response.status_code == 200
     assert response.get_json()['user']['email'] == 'buyer@farmdirect.ai'
+
+
+def test_profile_updates_persist_after_logout_and_relogin(monkeypatch):
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    with app.app_context():
+        db.create_all()
+        db.session.add(User(
+            full_name='Ramesh Kumar',
+            email='farmer@test.com',
+            phone='+91 98765 43210',
+            password_hash=generate_password_hash('password123'),
+            role='farmer',
+            is_verified=True,
+        ))
+        db.session.commit()
+
+    token = client.post('/api/auth/login', json={'email': 'farmer@test.com', 'password': 'password123'}).get_json()['token']
+    headers = {'Authorization': f'Bearer {token}'}
+    response = client.patch('/api/auth/me', json={
+        'full_name': 'Ramesh Updated',
+        'phone': '+91 99999 11111',
+        'email': 'updatedfarmer@test.com',
+        'address': 'Main Road, Guntur',
+        'village': 'Venkateswarapuram',
+        'mandal': 'Guntur',
+        'district': 'Guntur',
+        'state': 'Andhra Pradesh',
+        'language': 'Telugu',
+        'bank_details': 'SBI - 1234 **** 5678',
+        'notifications_enabled': False,
+        'location_tracking': True,
+        'farm_profile': {
+            'farm_name': 'Sunrise Organics',
+            'location': 'Venkateswarapuram, Guntur',
+            'size': '3.5 Acres',
+            'soil_type': 'Black Soil',
+            'irrigation_type': 'Drip Irrigation',
+            'farming_method': 'Organic',
+            'expected_harvest': 'Oct 2025',
+            'crops_grown': 'Tomato, Chilli, Rice',
+        },
+    }, headers=headers)
+
+    assert response.status_code == 200
+    data = response.get_json()['user']
+    assert data['full_name'] == 'Ramesh Updated'
+    assert data['address'] == 'Main Road, Guntur'
+    assert data['email'] == 'updatedfarmer@test.com'
+    assert data['farm_profile']['soil_type'] == 'Black Soil'
+    assert data['farm_profile']['crops_grown'] == 'Tomato, Chilli, Rice'
+    assert data['profile_data']['notifications_enabled'] is False
+    assert data['profile_data']['location_tracking'] is True
+
+    relogin = client.post('/api/auth/login', json={'email': 'updatedfarmer@test.com', 'password': 'password123'})
+    assert relogin.status_code == 200
+    user = relogin.get_json()['user']
+    assert user['full_name'] == 'Ramesh Updated'
+    assert user['phone'] == '+91 99999 11111'
+    assert user['address'] == 'Main Road, Guntur'
+    assert user['farm_profile']['irrigation_type'] == 'Drip Irrigation'
+    assert user['profile_data']['notifications_enabled'] is False

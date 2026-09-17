@@ -1,24 +1,170 @@
-import { ArrowUpRight, BarChart3, CalendarDays, MapPin, Package, Sparkles, Wheat } from 'lucide-react';
+import { ArrowRight, Bell, CalendarDays, ChevronDown, ClipboardList, PackageCheck, Search, Tractor, WalletCards } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getOrders, getPredictions, getProducts } from '../../services/api';
-import { getProductImage } from '../../utils/productImages';
+import { useNavigate } from 'react-router-dom';
+import { getFarmerInventoryOverview, getFarmerPaymentSummary, getOrders } from '../../services/api';
+
+const statusLabels = { PENDING: 'Pending', PAID: 'Paid', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In delivery', DELIVERED: 'Delivered', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
+const emptyMetrics = { active_listings: 0, available_stock: 0, reserved_stock: 0, sold_stock: 0, catalogue_value: 0 };
+const emptySummary = { revenue: 0, sold_quantity: 0, paid_orders: 0 };
+
+function formatCurrency(value) {
+    return `₹ ${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
 
 export default function FarmerDashboardPage() {
-    const [products, setProducts] = useState([]);
-    const [predictions, setPredictions] = useState([]);
-    const [orderCount, setOrderCount] = useState(0);
+    const navigate = useNavigate();
+    const user = JSON.parse(localStorage.getItem('farmdirect_user') || '{}');
+    const [metrics, setMetrics] = useState(emptyMetrics);
+    const [summary, setSummary] = useState(emptySummary);
+    const [orders, setOrders] = useState([]);
+    const [search, setSearch] = useState('');
+    const [error, setError] = useState('');
+    const name = user.full_name || 'Farmer';
+    const language = user.profile_data?.language || 'Not set';
+    const initials = name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+    const pendingPayments = orders.filter((order) => order.status === 'PENDING').reduce((total, order) => total + Number(order.total_amount || 0), 0);
+
     useEffect(() => {
-        getProducts().then((result) => setProducts(result.items));
-        getPredictions().then((result) => setPredictions(result.predictions || []));
-        getOrders().then((result) => setOrderCount(result.count)).catch(() => undefined);
+        Promise.all([getFarmerInventoryOverview(), getFarmerPaymentSummary(), getOrders()])
+            .then(([inventoryResult, paymentResult, ordersResult]) => {
+                setMetrics(inventoryResult.metrics || emptyMetrics);
+                setSummary(paymentResult.summary || emptySummary);
+                setOrders(ordersResult.items || []);
+            })
+            .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Unable to load your farm overview'));
     }, []);
-    const featuredProduct = products[0];
-    return (<main className="farmer-dashboard-page"><div className="farmer-dashboard-container">
-        <div className="farmer-dashboard-topline"><span><Wheat size={14}/> FARM / OVERVIEW</span><span><CalendarDays size={14}/> 12 SEP 2026</span></div>
-        <section className="farmer-dashboard-hero"><div className="farmer-dashboard-copy"><p className="farmer-kicker">A better day at the farm starts with a clear signal.</p><h1>Make the next harvest count.</h1><p className="farmer-dashboard-lede">Your listings, orders, and market guidance gathered into one working view, so the next decision is easier to make.</p><div className="farmer-dashboard-actions"><Link className="farmer-action-primary" to="/farmer/products">Open inventory <ArrowUpRight size={17}/></Link><Link className="farmer-action-link" to="/farmer/orders">Review orders <ArrowUpRight size={16}/></Link></div></div><div className="farmer-harvest-visual"><img src={getProductImage(featuredProduct)} alt={featuredProduct ? `${featuredProduct.name} harvest` : 'Fresh farm produce'}/><div className="farmer-harvest-caption"><span>LIVE LISTING</span><strong>{featuredProduct?.name || 'Your next crop'}</strong><small>{featuredProduct ? `${featuredProduct.quantity} ${featuredProduct.unit} available` : 'Add your first product to begin'}</small></div></div></section>
-        <section className="farmer-signal-strip" aria-label="Farm overview metrics"><div><span>Active listings</span><strong>{products.length}</strong><small>available to buyers</small></div><div><span>Open orders</span><strong>{orderCount}</strong><small>ready for your attention</small></div><div><span>Market signal</span><strong>{predictions.length || '—'}</strong><small>crops analyzed separately</small></div></section>
-        <section className="farmer-dashboard-grid"><div className="farmer-inventory-panel"><div className="farmer-panel-heading"><div><span className="farmer-section-label">CURRENT INVENTORY</span><h2>What is moving today</h2></div><Link to="/farmer/products" aria-label="Open full inventory"><ArrowUpRight size={19}/></Link></div><div className="farmer-product-list">{products.slice(0, 4).map((product) => <div className="farmer-product-row" key={product.id}><img src={getProductImage(product)} alt=""/><div><strong>{product.name}</strong><span><MapPin size={13}/> {product.location}</span></div><b>{product.quantity} <small>{product.unit}</small></b></div>)}{products.length === 0 && <div className="farmer-empty-state"><Wheat size={21}/><p>No listings yet. Add your first crop to put your farm on the market.</p><Link to="/farmer/products">Add a listing</Link></div>}</div><div className="farmer-panel-footer"><BarChart3 size={16}/> Showing your four most recent listings</div></div>
-          <div className="farmer-forecast-panel"><div className="farmer-panel-heading"><div><span className="farmer-section-label">AI MARKET NOTE</span><h2>Crop-by-crop guidance</h2></div><Sparkles size={20}/></div>{predictions.length ? <div className="farmer-forecast-list">{predictions.map((prediction) => <div className="farmer-forecast-item" key={prediction.crop}><div className="farmer-forecast-item-heading"><div><strong>{prediction.crop}</strong><span>{prediction.listing_count} listing{prediction.listing_count === 1 ? '' : 's'} · {prediction.sold_quantity} kg sold</span></div><b>₹{prediction.predicted_price}<small>/kg</small></b></div><div className="farmer-confidence"><span>Confidence</span><b>{Math.round(prediction.confidence * 100)}%</b><i><em style={{ width: `${Math.round(prediction.confidence * 100)}%` }}/></i></div></div>)}</div> : <p className="farmer-forecast-note">Loading crop-by-crop market guidance...</p>}<p className="farmer-forecast-note">Each crop is calculated separately from its own listings and recorded sales.</p></div></section>
-    </div></main>);
+
+    function submitSearch(event) {
+        event.preventDefault();
+        navigate(`/farmer/products${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ''}`);
+    }
+
+    const orderRows = orders.slice(0, 3).map((order) => {
+        const item = order.items?.[0];
+        return {
+            crop: item?.product_name || 'Order',
+            quantity: item ? `${item.quantity} units` : 'Order details unavailable',
+            amount: formatCurrency(order.total_amount),
+            status: statusLabels[order.status] || order.status,
+            date: order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent order',
+            buyer: `Order #${order.id}`,
+        };
+    });
+
+    const quickActions = [
+        { label: 'Add Delivery', icon: Tractor, subtitle: 'Manage deliveries', path: '/farmer/tracking' },
+        { label: 'Add & Sling', icon: PackageCheck, subtitle: 'Manage listings', path: '/farmer/add-product' },
+        { label: 'Notifications', icon: Bell, subtitle: 'View alerts', path: '/farmer/notifications' },
+    ];
+
+    return (
+        <main className="farmer-overview-page">
+            <div className="farmer-overview-shell">
+                <div className="farmer-overview-header-row">
+                    <form className="farmer-overview-search" onSubmit={submitSearch}>
+                        <Search size={15} />
+                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products or crops..." aria-label="Search products or crops" />
+                    </form>
+                    <div className="farmer-overview-user-box">
+                        <button className="farmer-overview-bell" type="button" aria-label="Open notifications" onClick={() => navigate('/farmer/notifications')}><CalendarDays size={15} /></button>
+                        <div className="farmer-overview-user-avatar">{initials}</div>
+                        <div className="farmer-overview-user-meta">
+                            <strong>{name}</strong>
+                            <small>{language}</small>
+                        </div>
+                        <ChevronDown size={14} />
+                    </div>
+                </div>
+
+                <div className="farmer-overview-greeting-wrap">
+                    <h1 className="farmer-overview-title">Good Morning, {name}!</h1>
+                    <p className="farmer-overview-subtitle">Your hard work holds. We valued. Keep growing!</p>
+                </div>
+
+                <div className="farmer-overview-banner">
+                    <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1200&q=80" alt="Farm field" />
+                    <div className="farmer-overview-banner-copy">
+                        <span>Better Prices</span>
+                        <strong>Bigger Markets</strong>
+                        <em>Brighter Future</em>
+                    </div>
+                </div>
+
+                <div className="farmer-overview-stats">
+                    <div className="farmer-overview-stat-card">
+                        <div className="farmer-overview-stat-icon tomato"><WalletCards size={18} /></div>
+                        <div>
+                            <span>Total Sales</span>
+                            <strong>{formatCurrency(summary.revenue)}</strong>
+                            <small>{summary.paid_orders} paid orders</small>
+                        </div>
+                    </div>
+
+                    <div className="farmer-overview-stat-card">
+                        <div className="farmer-overview-stat-icon acres"><ClipboardList size={18} /></div>
+                        <div>
+                            <span>Pending Payments</span>
+                            <strong>{formatCurrency(pendingPayments)}</strong>
+                            <small>{orders.filter((order) => order.status === 'PENDING').length} orders awaiting review</small>
+                        </div>
+                    </div>
+
+                    <div className="farmer-overview-stat-card">
+                        <div className="farmer-overview-stat-icon soil"><PackageCheck size={18} /></div>
+                        <div>
+                            <span>Total Orders</span>
+                            <strong>{orders.length}</strong>
+                            <small>{metrics.active_listings} active listings</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="farmer-overview-lower-grid">
+                    <section className="farmer-overview-order-panel">
+                        <div className="farmer-overview-panel-head">
+                            <h2>Recent Orders</h2>
+                            <button type="button" className="farmer-overview-link" onClick={() => navigate('/farmer/orders')}>View all <ArrowRight size={13} /></button>
+                        </div>
+
+                        <div className="farmer-overview-order-list">
+                            {orderRows.map((row) => (
+                                <div key={`${row.crop}-${row.amount}`} className="farmer-overview-order-item">
+                                    <div className="farmer-overview-order-avatar">🍅</div>
+                                    <div className="farmer-overview-order-copy">
+                                        <div className="farmer-overview-order-topline">
+                                            <strong>{row.crop}</strong>
+                                            <span>{row.date}</span>
+                                        </div>
+                                        <small>{row.buyer}</small>
+                                    </div>
+                                    <div className="farmer-overview-order-amount">
+                                        <span>{row.amount}</span>
+                                        <em>{row.status}</em>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="farmer-overview-action-panel">
+                        <div className="farmer-overview-panel-head narrow">
+                            <h2>Quick Actions</h2>
+                        </div>
+                        <div className="farmer-overview-actions-grid">
+                            {quickActions.map(({ label, icon: Icon, subtitle, path }) => (
+                                <button key={label} type="button" className="farmer-overview-action-button" onClick={() => navigate(path)}>
+                                    <span className="farmer-overview-action-icon"><Icon size={18} /></span>
+                                    <span className="farmer-overview-action-copy">
+                                        <strong>{label}</strong>
+                                        <small>{subtitle}</small>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            </div>
+            {error && <p className="farmer-overview-error" role="alert">{error}</p>}
+        </main>
+    );
 }

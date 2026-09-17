@@ -3,8 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "start": "react-scripts start",
-    "dev": "react-scripts start",
+    "start": "FAST_REFRESH=false react-scripts start",
+    "dev": "FAST_REFRESH=false react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --watchAll=false"
   },

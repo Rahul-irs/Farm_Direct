@@ -4,8 +4,26 @@ from sqlalchemy import func
 from .. import db
 from ..models.order import OrderItem
 from ..models.product import Product
+from ..utils.auth import jwt_required_roles
 
 ai_bp = Blueprint('ai_bp', __name__)
+
+
+@ai_bp.get('/farmer-insights')
+@jwt_required_roles('farmer')
+def farmer_insights(user):
+    products = Product.query.filter_by(farmer_id=user.id).all()
+    insights = []
+    for product in products:
+        sold = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).filter(OrderItem.product_id == product.id).scalar() or 0
+        if product.quantity <= 0:
+            recommendation = 'Restock this listing before the next buyer request.'
+        elif sold:
+            recommendation = 'Demand is active. Review price and reserve stock for repeat buyers.'
+        else:
+            recommendation = 'Improve the listing image and description to increase discovery.'
+        insights.append({'product_id': product.id, 'crop': product.crop, 'current_price': product.price, 'sold_quantity': float(sold), 'recommendation': recommendation})
+    return jsonify({'success': True, 'items': insights})
 
 
 @ai_bp.get('/price-prediction')

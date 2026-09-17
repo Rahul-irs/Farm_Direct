@@ -23,6 +23,8 @@ import TrackingPage from './pages/consumer/TrackingPage';
 import NotificationsPage from './pages/consumer/NotificationsPage';
 import PaymentsPage from './pages/consumer/PaymentsPage';
 import ReviewPage from './pages/consumer/ReviewPage';
+import ProductDetailsPage from './pages/consumer/ProductDetailsPage';
+import WishlistPage from './pages/consumer/WishlistPage';
 import FarmerOrdersPage from './pages/farmer/FarmerOrdersPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
@@ -33,6 +35,11 @@ import ContactPage from './pages/public/ContactPage';
 import RouteEstimatePage from './pages/logistics/RouteEstimatePage';
 import DashboardShell from './components/layout/DashboardShell';
 import AdminAuditLogsPage from './pages/admin/AdminAuditLogsPage';
+import FarmerFarmPage from './pages/farmer/FarmerFarmPage';
+import FarmerEarningsPage from './pages/farmer/FarmerEarningsPage';
+import FarmerInsightsPage from './pages/farmer/FarmerInsightsPage';
+import FarmerTrackingPage from './pages/farmer/FarmerTrackingPage';
+import FarmerSettingsPage from './pages/farmer/FarmerSettingsPage';
 function App() {
     return (<Routes>
       <Route path="/" element={<LandingPage />}/>
@@ -50,15 +57,17 @@ function App() {
         <Route element={<DashboardShell />}>
         <Route path="/profile" element={<ProfilePage />}/>
         <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/dashboard/farmer" element={<FarmerDashboardPage />}/></Route>
-        <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/products" element={<FarmerProductsPage />}/></Route>
+        <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/products" element={<FarmerProductsPage />}/><Route path="/farmer/add-product" element={<FarmerProductsPage />}/><Route path="/farmer/inventory" element={<FarmerProductsPage />}/></Route>
         <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/orders" element={<FarmerOrdersPage />}/></Route>
+        <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/farm" element={<FarmerFarmPage />}/><Route path="/farmer/earnings" element={<FarmerEarningsPage />}/><Route path="/farmer/notifications" element={<NotificationsPage />}/><Route path="/farmer/tracking" element={<FarmerTrackingPage />}/><Route path="/farmer/settings" element={<FarmerSettingsPage />}/><Route path="/farmer/orders/:orderId/tracking" element={<TrackingPage />}/></Route>
+        <Route element={<ProtectedRoute roles={['farmer']}/>}><Route path="/farmer/insights" element={<FarmerInsightsPage />}/><Route path="/farmer/ai-price" element={<FarmerInsightsPage />}/><Route path="/farmer/ai-demand" element={<FarmerInsightsPage />}/></Route>
         <Route element={<ProtectedRoute roles={['consumer', 'bulk_buyer']}/>}><Route path="/dashboard/consumer" element={<ConsumerDashboardPage />}/></Route>
-        <Route element={<ProtectedRoute roles={['consumer', 'bulk_buyer']}/>}><Route path="/marketplace" element={<MarketplacePage />}/><Route path="/cart" element={<CartPage />}/><Route path="/orders" element={<OrdersPage />}/><Route path="/orders/:orderId/tracking" element={<TrackingPage />}/><Route path="/notifications" element={<NotificationsPage />}/><Route path="/payments" element={<PaymentsPage />}/><Route path="/review" element={<ReviewPage />}/></Route>
+        <Route element={<ProtectedRoute roles={['consumer', 'bulk_buyer']}/>}><Route path="/marketplace" element={<MarketplacePage />}/><Route path="/products/:productId" element={<ProductDetailsPage />}/><Route path="/cart" element={<CartPage />}/><Route path="/orders" element={<OrdersPage />}/><Route path="/orders/:orderId/tracking" element={<TrackingPage />}/><Route path="/tracking" element={<TrackingPage />}/><Route path="/tracking/:orderId" element={<TrackingPage />}/><Route path="/notifications" element={<NotificationsPage />}/><Route path="/payments" element={<PaymentsPage />}/><Route path="/wishlist" element={<WishlistPage />}/><Route path="/review" element={<ReviewPage />}/><Route path="/reviews" element={<ReviewPage />}/></Route>
         <Route element={<ProtectedRoute roles={['admin']}/>}><Route path="/dashboard/admin" element={<AdminDashboardPage />}/></Route>
         <Route element={<ProtectedRoute roles={['admin']}/>}><Route path="/admin/users" element={<AdminUsersPage />}/><Route path="/admin/products" element={<AdminProductsPage />}/><Route path="/admin/orders" element={<AdminOrdersPage />}/><Route path="/admin/audit-logs" element={<AdminAuditLogsPage />}/></Route>
         <Route element={<ProtectedRoute roles={['logistics_provider']}/>}><Route path="/dashboard/logistics" element={<LogisticsDashboardPage />}/></Route>
           <Route element={<ProtectedRoute roles={['logistics_provider', 'admin']}/>}><Route path="/logistics/route-estimate" element={<RouteEstimatePage />}/></Route>
-        <Route element={<ProtectedRoute roles={['fpo']}/>}><Route path="/dashboard/fpo" element={<PartnerDashboardPage role="fpo"/>}/></Route>
+        <Route element={<ProtectedRoute roles={['fpo']}/>}><Route path="/dashboard/fpo" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/members" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/farmers" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/inventory" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/aggregations" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/marketplace" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/bulk-buyers" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/logistics" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/analytics" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/notifications" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/settings" element={<PartnerDashboardPage role="fpo"/>}/><Route path="/fpo/:section" element={<PartnerDashboardPage role="fpo"/>}/></Route>
         <Route element={<ProtectedRoute roles={['field_assistant']}/>}><Route path="/dashboard/field-assistant" element={<PartnerDashboardPage role="field_assistant"/>}/></Route>
         <Route element={<ProtectedRoute roles={['bulk_buyer']}/>}><Route path="/dashboard/bulk-buyer" element={<PartnerDashboardPage role="bulk_buyer"/>}/></Route>
         </Route>

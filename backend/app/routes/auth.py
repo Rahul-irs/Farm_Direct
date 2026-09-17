@@ -156,9 +156,33 @@ def update_me(user):
     full_name = (data.get('full_name') or '').strip()
     if not full_name:
         return jsonify({'success': False, 'message': 'Full name is required'}), 400
+
     user.full_name = full_name
+
     if 'phone' in data:
         user.phone = (data.get('phone') or '').strip() or None
+
+    if 'email' in data:
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({'success': False, 'message': 'Email is required'}), 400
+        if email != user.email and User.query.filter(User.email == email, User.id != user.id).first():
+            return jsonify({'success': False, 'message': 'Email is already registered to another account'}), 409
+        user.email = email
+
+    profile_data = dict(user.profile_data or {})
+    for field in ('address', 'village', 'mandal', 'district', 'state', 'language', 'bank_details', 'notifications_enabled', 'location_tracking'):
+        if field in data:
+            value = data.get(field)
+            profile_data[field] = value if isinstance(value, bool) else str(value).strip() if value is not None else ''
+    user.profile_data = profile_data
+
+    if user.role == 'farmer' and 'farm_profile' in data:
+        farm_profile = data.get('farm_profile') or {}
+        if not isinstance(farm_profile, dict):
+            return jsonify({'success': False, 'message': 'Farm details must be an object'}), 400
+        user.farm_profile = {key: str(farm_profile.get(key, '')).strip() for key in ('farm_name', 'farm_type', 'location', 'size', 'description', 'soil_type', 'irrigation_type', 'farming_method', 'expected_harvest', 'crops_grown')}
+
     db.session.commit()
     return jsonify({'success': True, 'user': user.to_dict()})
 

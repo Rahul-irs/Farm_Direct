@@ -1,5 +1,6 @@
 import os
 from flask import Flask, send_from_directory
+from sqlalchemy import inspect, text
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
@@ -11,6 +12,27 @@ load_dotenv()
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
+
+
+def _ensure_runtime_schema():
+    """Apply the small compatibility additions used by the current models."""
+    inspector = inspect(db.engine)
+    if not inspector.has_table('users') or not inspector.has_table('products'):
+        return
+    user_columns = {column['name'] for column in inspector.get_columns('users')}
+    product_columns = {column['name'] for column in inspector.get_columns('products')}
+    statements = []
+    if 'farm_profile' not in user_columns:
+        statements.append("ALTER TABLE users ADD COLUMN farm_profile JSONB")
+    if 'profile_data' not in user_columns:
+        statements.append("ALTER TABLE users ADD COLUMN profile_data JSONB")
+    if 'is_active' not in product_columns:
+        statements.append("ALTER TABLE products ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE")
+    statements.append("CREATE TABLE IF NOT EXISTS wishlist_items (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), product_id INTEGER NOT NULL REFERENCES products(id), CONSTRAINT uq_wishlist_user_product UNIQUE (user_id, product_id))")
+    for statement in statements:
+        db.session.execute(text(statement))
+    if statements:
+        db.session.commit()
 
 
 def create_app() -> Flask:
@@ -37,6 +59,8 @@ def create_app() -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    with app.app_context():
+        _ensure_runtime_schema()
     configured_origins = os.getenv('FRONTEND_URL', '')
     cors_origins = [origin.strip() for origin in configured_origins.split(',') if origin.strip()]
     cors_origins.extend(origin for origin in (
@@ -45,7 +69,10 @@ def create_app() -> Flask:
         'http://localhost:5173',
         'http://127.0.0.1:5173',
     ) if origin not in cors_origins)
-    CORS(app, resources={r"/api/*": {"origins": cors_origins}})
+    # React development servers are often opened through the machine's LAN IP.
+    # JWTs are sent in headers, so credentials are not needed for this local CORS policy.
+    local_dev_origins = r'^https?://(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+):\d+$'
+    CORS(app, resources={r"/api/*": {'origins': [*cors_origins, local_dev_origins], 'allow_headers': ['Content-Type', 'Authorization']}})
 
     from .routes.auth import auth_bp
     from .routes.products import products_bp
@@ -57,6 +84,7 @@ def create_app() -> Flask:
     from .routes.logistics import logistics_bp
     from .routes.reviews import reviews_bp
     from .routes.partners import partners_bp
+    from .routes.wishlist import wishlist_bp
     from .routes.routes import routes_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -70,6 +98,7 @@ def create_app() -> Flask:
     app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
     app.register_blueprint(partners_bp, url_prefix='/api/partners')
     app.register_blueprint(routes_bp, url_prefix='/api/routes')
+    app.register_blueprint(wishlist_bp, url_prefix='/api/wishlist')
 
     @app.get('/')
     def index():

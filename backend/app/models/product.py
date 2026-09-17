@@ -16,6 +16,7 @@ class Product(db.Model):
     location = db.Column(db.String(120), nullable=False)
     farmer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     image_url = db.Column(db.String(500), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     def to_dict(self):
         return {
@@ -31,4 +32,5 @@ class Product(db.Model):
             'location': self.location,
             'farmer_id': self.farmer_id,
             'image_url': self.image_url,
+            'is_active': self.is_active,
         }

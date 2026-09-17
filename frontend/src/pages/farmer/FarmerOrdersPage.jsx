@@ -1,11 +1,16 @@
-import { ArrowLeft, ArrowUpRight, Check, Clock3, PackageCheck, RefreshCw, Trash2, Truck } from 'lucide-react';
+import { Check, ChevronRight, Clock3, PackageCheck, RefreshCw, Trash2, Truck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { deleteOrder, getOrders, updateOrderStatus } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
 
-const filters = ['ALL', 'PENDING', 'PAID', 'CONFIRMED', 'LOGISTICS_REQUESTED', 'COMPLETED', 'CANCELLED'];
-const statusLabels = { PENDING: 'Needs review', PAID: 'Paid · needs review', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In delivery queue', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
+const filters = ['ALL', 'PENDING', 'CONFIRMED', 'LOGISTICS_REQUESTED', 'DELIVERED', 'COMPLETED'];
+const filterLabels = { ALL: 'All Orders', PENDING: 'Pending', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In Progress', DELIVERED: 'Delivered', COMPLETED: 'Completed' };
+const statusLabels = { PENDING: 'Pending', PAID: 'Paid', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In Progress', DELIVERED: 'Delivered', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
+
+function orderDate(value) {
+    return value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent order';
+}
 
 export default function FarmerOrdersPage() {
     const [orders, setOrders] = useState([]);
@@ -16,6 +21,7 @@ export default function FarmerOrdersPage() {
 
     async function load() {
         setLoading(true);
+        setError('');
         try { const result = await getOrders(); setOrders(result.items || []); }
         catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to load orders'); }
         finally { setLoading(false); }
@@ -26,26 +32,32 @@ export default function FarmerOrdersPage() {
     async function advance(order) {
         const next = order.status === 'PENDING' || order.status === 'PAID' ? 'CONFIRMED' : order.status === 'CONFIRMED' ? 'LOGISTICS_REQUESTED' : '';
         if (!next) return;
-        try { setError(''); await updateOrderStatus(order.id, next); setMessage(next === 'CONFIRMED' ? `Order #${order.id} confirmed and ready for fulfilment.` : `Order #${order.id} sent to logistics.`); await load(); }
-        catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to update order'); }
+        try {
+            await updateOrderStatus(order.id, next);
+            setMessage(next === 'CONFIRMED' ? `Order #${order.id} confirmed.` : `Order #${order.id} sent to logistics.`);
+            await load();
+        } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to update order'); }
     }
 
     async function remove(order) {
-        if (!window.confirm(`Delete order #${order.id}? This removes it permanently from your workspace.`)) return;
-        try { setError(''); await deleteOrder(order.id); setOrders((current) => current.filter((item) => item.id !== order.id)); setMessage(`Order #${order.id} deleted permanently.`); }
+        if (!window.confirm(`Delete order #${order.id}?`)) return;
+        try { await deleteOrder(order.id); setOrders((current) => current.filter((item) => item.id !== order.id)); setMessage(`Order #${order.id} deleted.`); }
         catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to delete order'); }
     }
 
-    const visibleOrders = useMemo(() => filter === 'ALL' ? orders : orders.filter((order) => order.status === filter), [filter, orders]);
-    const pendingCount = orders.filter((order) => order.status === 'PENDING' || order.status === 'PAID').length;
-    const totalValue = orders.reduce((total, order) => total + Number(order.total_amount || 0), 0);
+    const visibleOrders = useMemo(() => filter === 'ALL' ? orders : orders.filter((order) => filter === 'PENDING' ? ['PENDING', 'PAID'].includes(order.status) : order.status === filter), [filter, orders]);
+    const filterCount = (item) => item === 'ALL' ? orders.length : orders.filter((order) => item === 'PENDING' ? ['PENDING', 'PAID'].includes(order.status) : order.status === item).length;
 
-    return <main className="farmer-orders-page"><div className="farmer-orders-container">
-        <div className="farmer-orders-breadcrumb"><Link to="/dashboard/farmer"><ArrowLeft size={15}/> Back to overview</Link><span>ORDERS / FIELD DESK</span></div>
-        <header className="farmer-orders-header"><div><p className="farmer-kicker">Your customer desk</p><h1>Orders that need you.</h1><p>Review payment, confirm what is ready, and send every fulfilled order into the logistics queue.</p></div><button className="farmer-orders-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={16} className={loading ? 'farmer-spin' : ''}/> Refresh</button></header>
-        {message && <p className="farmer-orders-notice" role="status"><Check size={16}/>{message}</p>}{error && <p className="farmer-orders-error" role="alert">{error}</p>}
-        <section className="farmer-orders-summary"><div><span>Orders in view</span><strong>{orders.length}</strong><small>all customer requests</small></div><div><span>Needs your attention</span><strong>{pendingCount}</strong><small>pending or paid orders</small></div><div><span>Order value</span><strong>₹{totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong><small>across this workspace</small></div></section>
-        <div className="farmer-orders-toolbar"><div className="farmer-order-filters" role="tablist" aria-label="Filter orders">{filters.map((item) => <button className={filter === item ? 'is-active' : ''} type="button" key={item} onClick={() => setFilter(item)}>{item === 'ALL' ? 'All orders' : statusLabels[item]}</button>)}</div><span>{visibleOrders.length} showing</span></div>
-        <section className="farmer-order-list">{visibleOrders.map((order) => <article className="farmer-order-card" key={order.id}><div className="farmer-order-card-top"><div className="farmer-order-id"><span className={`farmer-order-status status-${order.status.toLowerCase()}`}><Clock3 size={13}/>{statusLabels[order.status] || order.status}</span><h2>Order <b>#{order.id}</b></h2><p>{order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent request'}</p></div><div className="farmer-order-value"><span>Total value</span><strong>₹{Number(order.total_amount || 0).toFixed(2)}</strong></div></div><div className="farmer-order-items">{order.items?.map((item) => <div className="farmer-order-item" key={item.id}><img src={getProductImage({ name: item.product_name })} alt=""/><div><strong>{item.product_name}</strong><span>{item.quantity} units · ₹{Number(item.unit_price || 0).toFixed(2)} each</span></div><b>₹{Number(item.subtotal || 0).toFixed(2)}</b></div>)}</div><div className="farmer-order-card-footer"><span className="farmer-order-route"><PackageCheck size={15}/> {order.items?.length || 0} product line{order.items?.length === 1 ? '' : 's'} <i>·</i> {order.status === 'PAID' ? 'payment received' : 'ready to review'}</span><div className="farmer-order-actions">{(order.status === 'PENDING' || order.status === 'PAID') && <button className="farmer-order-primary" type="button" onClick={() => advance(order)}><Check size={15}/> Confirm order</button>}{order.status === 'CONFIRMED' && <button className="farmer-order-primary" type="button" onClick={() => advance(order)}><Truck size={15}/> Request logistics</button>}<button className="farmer-order-delete" type="button" onClick={() => remove(order)}><Trash2 size={14}/> Delete</button><ArrowUpRight size={16}/></div></div></article>)}{visibleOrders.length === 0 && <div className="farmer-orders-empty"><PackageCheck size={34}/><h2>{filter === 'ALL' ? 'No customer orders yet' : `No ${statusLabels[filter]?.toLowerCase() || 'matching'} orders`}</h2><p>New marketplace purchases will appear here.</p></div>}</section>
+    return <main className="farmer-orders-page farmer-orders-reference"><div className="farmer-orders-container">
+        <header className="farmer-orders-reference-header"><h1>Orders</h1><button className="farmer-orders-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={15} className={loading ? 'farmer-spin' : ''} /> Refresh</button></header>
+        {message && <p className="farmer-orders-notice" role="status"><Check size={15} /> {message}</p>}{error && <p className="farmer-orders-error" role="alert">{error}</p>}
+        <div className="farmer-orders-reference-toolbar"><div className="farmer-order-filters" role="tablist" aria-label="Filter orders">{filters.map((item) => <button className={filter === item ? 'is-active' : ''} type="button" key={item} onClick={() => setFilter(item)}>{filterLabels[item]} <b>{filterCount(item)}</b></button>)}</div><span>{visibleOrders.length} orders</span></div>
+        <section className="farmer-orders-reference-list">{visibleOrders.map((order) => { const item = order.items?.[0]; const status = statusLabels[order.status] || order.status; return <article className="farmer-order-reference-row" key={order.id}>
+            <div className="farmer-order-reference-product"><img src={getProductImage({ name: item?.product_name })} alt="" /><div><strong>{item?.product_name || `Order #${order.id}`}</strong><span>{item ? `${item.quantity} units · Order #${order.id}` : `Order #${order.id}`}</span></div></div>
+            <div className="farmer-order-reference-amount"><span>Total Amount</span><strong>₹{Number(order.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</strong></div>
+            <div className="farmer-order-reference-date"><span>Order Date</span><strong>{orderDate(order.created_at)}</strong></div>
+            <span className={`farmer-order-reference-status status-${order.status.toLowerCase()}`}><Clock3 size={12} />{status}</span>
+            <div className="farmer-order-reference-actions">{(order.status === 'PENDING' || order.status === 'PAID') && <button type="button" className="farmer-order-reference-primary" onClick={() => advance(order)}><Check size={13} /> Accept Order</button>}{order.status === 'CONFIRMED' && <button type="button" className="farmer-order-reference-primary" onClick={() => advance(order)}><Truck size={13} /> Logistics</button>}{['LOGISTICS_REQUESTED', 'DELIVERED'].includes(order.status) && <Link className="farmer-order-reference-primary" to={`/farmer/orders/${order.id}/tracking`}><Truck size={13} /> Track</Link>}{order.status === 'PENDING' && <button type="button" className="farmer-order-reference-delete" onClick={() => remove(order)} aria-label={`Delete order ${order.id}`}><Trash2 size={14} /></button>}<ChevronRight size={15} className="farmer-order-reference-arrow" /></div>
+        </article>; })}{loading && <p className="farmer-orders-empty">Loading orders...</p>}{!loading && visibleOrders.length === 0 && <div className="farmer-orders-empty"><PackageCheck size={27} /><h2>No orders in this view</h2><p>New customer orders will appear here.</p></div>}</section>
     </div></main>;
 }

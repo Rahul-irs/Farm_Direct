@@ -9,7 +9,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(40) NOT NULL DEFAULT 'consumer',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    is_verified BOOLEAN NOT NULL DEFAULT FALSE
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    farm_profile JSONB
 );
 
 CREATE TABLE products (
@@ -24,7 +25,8 @@ CREATE TABLE products (
     quality VARCHAR(50) NOT NULL DEFAULT 'Grade A',
     location VARCHAR(120) NOT NULL,
     farmer_id INTEGER NOT NULL REFERENCES users(id),
-    image_url VARCHAR(500)
+    image_url VARCHAR(500),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE carts (

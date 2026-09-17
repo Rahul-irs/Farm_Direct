@@ -100,8 +100,12 @@ def create_order(user):
 @jwt_required_roles('farmer', 'admin')
 def update_order_status(user, order_id):
     order = db.get_or_404(Order, order_id)
-    if user.role == 'farmer' and not any(item.product.farmer_id == user.id for item in order.items):
-        return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
+    if user.role == 'farmer':
+        owned_items = [item for item in order.items if item.product.farmer_id == user.id]
+        if not owned_items:
+            return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
+        if len(owned_items) != len(order.items):
+            return jsonify({'success': False, 'message': 'This order contains products from multiple farmers and must be coordinated by the platform'}), 409
     next_status = (request.get_json(silent=True) or {}).get('status')
     allowed = {'PENDING': {'CONFIRMED', 'CANCELLED'}, 'PAID': {'CONFIRMED', 'CANCELLED'}, 'CONFIRMED': {'LOGISTICS_REQUESTED', 'CANCELLED'}, 'LOGISTICS_REQUESTED': {'COMPLETED'}}
     if next_status not in allowed.get(order.status, set()):
@@ -121,8 +125,14 @@ def update_order_status(user, order_id):
 @jwt_required_roles('farmer', 'admin')
 def delete_order(user, order_id):
     order = db.get_or_404(Order, order_id)
-    if user.role == 'farmer' and not any(item.product.farmer_id == user.id for item in order.items):
-        return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
+    if user.role == 'farmer':
+        owned_items = [item for item in order.items if item.product.farmer_id == user.id]
+        if not owned_items:
+            return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
+        if len(owned_items) != len(order.items):
+            return jsonify({'success': False, 'message': 'This order contains products from multiple farmers and cannot be deleted here'}), 409
+    if order.status not in {'PENDING', 'CANCELLED'}:
+        return jsonify({'success': False, 'message': 'Processed orders are retained for fulfilment and earnings history'}), 409
     delivery = Delivery.query.filter_by(order_id=order.id).first()
     if delivery:
         db.session.delete(delivery)
