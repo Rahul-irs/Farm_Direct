@@ -7,6 +7,7 @@ from ..models.product import Product
 from ..models.notification import Notification
 from ..models.logistics import Delivery, TrackingEvent
 from ..models.payment import Payment
+from ..models.partners import FieldAssignment
 from ..utils.auth import jwt_required_roles
 
 orders_bp = Blueprint('orders_bp', __name__)
@@ -67,6 +68,9 @@ def list_orders(user):
         query = Order.query
     elif user.role == 'farmer':
         query = Order.query.join(OrderItem).join(Product).filter(Product.farmer_id == user.id).distinct()
+    elif user.role == 'field_assistant':
+        farmer_ids = db.session.query(FieldAssignment.farmer_id).filter_by(assistant_id=user.id, status='ACTIVE').subquery()
+        query = Order.query.join(OrderItem).join(Product).filter(Product.farmer_id.in_(farmer_ids)).distinct()
     else:
         query = Order.query.filter_by(customer_id=user.id)
     orders = query.order_by(Order.id.desc()).all()
@@ -97,11 +101,15 @@ def create_order(user):
 
 
 @orders_bp.patch('/<int:order_id>/status')
-@jwt_required_roles('farmer', 'admin')
+@jwt_required_roles('farmer', 'field_assistant', 'admin')
 def update_order_status(user, order_id):
     order = db.get_or_404(Order, order_id)
-    if user.role == 'farmer':
-        owned_items = [item for item in order.items if item.product.farmer_id == user.id]
+    if user.role in {'farmer', 'field_assistant'}:
+        if user.role == 'farmer':
+            owned_items = [item for item in order.items if item.product.farmer_id == user.id]
+        else:
+            farmer_ids = {assignment.farmer_id for assignment in FieldAssignment.query.filter_by(assistant_id=user.id, status='ACTIVE').all()}
+            owned_items = [item for item in order.items if item.product.farmer_id in farmer_ids]
         if not owned_items:
             return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
         if len(owned_items) != len(order.items):

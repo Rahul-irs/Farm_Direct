@@ -1,7 +1,9 @@
 import { AtSign, Check, KeyRound, LockKeyhole, MapPin, Phone, Save, ShieldCheck, Sprout, UserRound } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { changePassword, updateProfile } from '../../services/api';
+import { FieldAssistantProfilePage } from '../fieldAssistant/FieldAssistantPage';
+import LogisticsProfilePage from '../logistics/LogisticsProfilePage';
 
 const demoProfileDefaults = {
     phone: '+91 98765 43210',
@@ -16,6 +18,7 @@ const demoProfileDefaults = {
 
 export default function ProfilePage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const stored = JSON.parse(localStorage.getItem('farmdirect_user') || '{}');
     const storedProfile = stored.profile_data || {};
     const currentRole = stored.role || 'consumer';
@@ -105,6 +108,26 @@ export default function ProfilePage() {
     if (!localStorage.getItem('farmdirect_token')) {
         navigate('/login');
         return null;
+    }
+
+    if (currentRole === 'field_assistant') {
+        return <FieldAssistantProfilePage />;
+    }
+
+    if (currentRole === 'logistics_provider') {
+        return <LogisticsProfilePage />;
+    }
+
+    if (currentRole === 'bulk_buyer') {
+        if (location.pathname === '/bulk-buyer/settings') {
+            return <main className="bulk-buyer-profile-page bulk-buyer-settings-page"><div className="bulk-buyer-profile-container"><header className="bulk-buyer-profile-header"><div><span className="bulk-buyer-kicker"><ShieldCheck size={14}/> Account security</span><h1>Settings</h1><p>Manage password, security, and buying desk preferences.</p></div></header>{message && <p className="bulk-buyer-profile-message" role="status">{message}</p>}{error && <p className="bulk-buyer-profile-error" role="alert">{error}</p>}<div className="bulk-buyer-settings-grid"><section className="bulk-buyer-profile-card"><div className="bulk-buyer-profile-card-head"><div><span className="bulk-buyer-label">Security</span><h2>Change password</h2></div><LockKeyhole size={17}/></div><form onSubmit={savePassword} className="bulk-buyer-password-form"><label><span>Current password</span><input type="password" value={passwords.current} onChange={(event) => setPasswords({ ...passwords, current: event.target.value })} required/></label><label><span>New password</span><input type="password" minLength="8" value={passwords.next} onChange={(event) => setPasswords({ ...passwords, next: event.target.value })} required/></label><button type="submit" className="bulk-buyer-profile-save"><ShieldCheck size={14}/> Update password</button></form></section><section className="bulk-buyer-profile-card"><div className="bulk-buyer-profile-card-head"><div><span className="bulk-buyer-label">Account status</span><h2>Workspace security</h2></div><ShieldCheck size={17}/></div><div className="bulk-buyer-security-status"><Check size={16}/><div><strong>Account verified</strong><p>Your buying desk is protected and ready for secure procurement.</p></div></div><div className="bulk-buyer-security-status"><Sprout size={16}/><div><strong>Growing Together</strong><p>Direct purchasing supports verified farm partners.</p></div></div></section></div></div></main>;
+        }
+        return <main className="bulk-buyer-profile-page"><div className="bulk-buyer-profile-container">
+            <header className="bulk-buyer-profile-header"><div><span className="bulk-buyer-kicker"><UserRound size={14}/> Buying desk account</span><h1>Profile</h1><p>Manage your buying desk identity and delivery details.</p></div><button type="button" className="bulk-buyer-profile-edit" onClick={() => isEditing ? saveProfile({ preventDefault: () => undefined }) : setIsEditing(true)}>{isEditing ? <><Save size={15}/> Save changes</> : <><Check size={15}/> Edit profile</>}</button></header>
+            {message && <p className="bulk-buyer-profile-message" role="status">{message}</p>}{error && <p className="bulk-buyer-profile-error" role="alert">{error}</p>}
+            <section className="bulk-buyer-profile-identity"><div className="bulk-buyer-profile-avatar">{initials}</div><div><span className="bulk-buyer-label">Bulk buyer account</span><h2>{profile.full_name || 'Bulk Buyer'}</h2><p>{profile.email}</p></div><span className="bulk-buyer-profile-verified"><ShieldCheck size={14}/> Verified buyer</span></section>
+            <div className="bulk-buyer-profile-grid"><section className="bulk-buyer-profile-card bulk-buyer-profile-card-wide"><div className="bulk-buyer-profile-card-head"><div><span className="bulk-buyer-label">Personal details</span><h2>Buying desk profile</h2></div><AtSign size={17}/></div><div className="bulk-buyer-profile-fields">{profileFields.slice(0, 3).map(({ label, value, icon: Icon, key, type }) => <label key={label}><span><Icon size={13}/> {label}</span>{isEditing ? <input type={type} value={profile[key]} onChange={(event) => updateProfileField(key, event.target.value)}/> : <strong>{value || 'Not provided'}</strong>}</label>)}</div></section><section className="bulk-buyer-profile-card"><div className="bulk-buyer-profile-card-head"><div><span className="bulk-buyer-label">Delivery details</span><h2>Primary location</h2></div><MapPin size={17}/></div><div className="bulk-buyer-profile-fields bulk-buyer-profile-fields-stack">{profileFields.slice(3, 8).map(({ label, value, icon: Icon, key, type }) => <label key={label}><span><Icon size={13}/> {label}</span>{isEditing ? <input type={type} value={profile[key]} onChange={(event) => updateProfileField(key, event.target.value)}/> : <strong>{value || 'Not provided'}</strong>}</label>)}</div></section><section className="bulk-buyer-profile-card bulk-buyer-security-card"><div className="bulk-buyer-profile-card-head"><div><span className="bulk-buyer-label">Security</span><h2>Change password</h2></div><LockKeyhole size={17}/></div><form onSubmit={savePassword} className="bulk-buyer-password-form"><label><span>Current password</span><input type="password" value={passwords.current} onChange={(event) => setPasswords({ ...passwords, current: event.target.value })} required/></label><label><span>New password</span><input type="password" minLength="8" value={passwords.next} onChange={(event) => setPasswords({ ...passwords, next: event.target.value })} required/></label><button type="submit" className="bulk-buyer-profile-save"><ShieldCheck size={14}/> Update password</button></form></section><section className="bulk-buyer-profile-card bulk-buyer-security-card"><div className="bulk-buyer-profile-card-head"><div><span className="bulk-buyer-label">Account status</span><h2>Workspace security</h2></div><ShieldCheck size={17}/></div><div className="bulk-buyer-security-status"><Check size={16}/><div><strong>Account verified</strong><p>Your buying desk is protected and ready for secure procurement.</p></div></div><div className="bulk-buyer-security-status"><Sprout size={16}/><div><strong>Growing Together</strong><p>Direct purchasing supports verified farm partners.</p></div></div></section></div>
+        </div></main>;
     }
 
     if (isFarmer) {

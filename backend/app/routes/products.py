@@ -9,6 +9,7 @@ from .. import db
 from ..models.product import Product
 from ..models.cart import CartItem
 from ..models.order import OrderItem
+from ..models.partners import FieldAssignment
 from ..utils.auth import jwt_required_roles
 
 products_bp = Blueprint('products_bp', __name__)
@@ -134,10 +135,12 @@ def delete_product(user, product_id):
 
 
 @products_bp.post('/<int:product_id>/image')
-@jwt_required_roles('farmer', 'admin')
+@jwt_required_roles('farmer', 'admin', 'field_assistant')
 def upload_product_image(user, product_id):
     product = Product.query.get_or_404(product_id)
-    if user.role != 'admin' and product.farmer_id != user.id:
+    owns_product = user.role == 'admin' or product.farmer_id == user.id
+    assigned_product = user.role == 'field_assistant' and FieldAssignment.query.filter_by(assistant_id=user.id, farmer_id=product.farmer_id, status='ACTIVE').first()
+    if not owns_product and not assigned_product:
         return jsonify({'success': False, 'message': 'You do not own this product'}), 403
     image = request.files.get('image')
     if image is None or not image.filename:

@@ -196,6 +196,18 @@ export function estimateRoute(pickup, destination) {
     return request(`/routes/estimate?pickup=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(destination)}`);
 }
 export function getPartnerRecords(path) { return request(`/partners/${path}`); }
+export function getFpoOverview() { return request('/partners/fpo/overview'); }
 export function createPartnerRecord(path, data) { return request(`/partners/${path}`, { method: 'POST', body: JSON.stringify(data) }); }
+export function registerFieldFarmer(data) { return request('/partners/field-assistant/register-farmer', { method: 'POST', body: JSON.stringify(data) }); }
+export function getFieldAssistantProducts() { return request('/partners/field-assistant/produce'); }
+export function getFieldAssistantSales() { return request('/partners/field-assistant/sales'); }
+export function createFieldAssistantProduct(data) { return request('/partners/field-assistant/produce', { method: 'POST', body: JSON.stringify(data) }); }
+export function updateFieldAssistantProduct(id, data) { return request(`/partners/field-assistant/produce/${id}`, { method: 'PATCH', body: JSON.stringify(data) }); }
+export function uploadFieldAssistantProductImage(id, image) {
+    const body = new FormData();
+    body.append('image', image);
+    return request(`/products/${id}/image`, { method: 'POST', body, headers: {} });
+}
+export function updatePartnerRecord(path, data) { return request(`/partners/${path}`, { method: 'PATCH', body: JSON.stringify(data) }); }
 export function deletePartnerRecord(path, id) { return request(`/partners/${path}/${id}`, { method: 'DELETE' }); }
 export function getPartnerRequirementMatches(id) { return request(`/partners/bulk/requirements/${id}/matches`); }

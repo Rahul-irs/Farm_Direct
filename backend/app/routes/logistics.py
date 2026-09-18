@@ -163,6 +163,10 @@ def update_delivery(user, delivery_id):
     delivery.status = next_status
     db.session.add(TrackingEvent(delivery_id=delivery.id, status=next_status, note=data.get('note')))
     if next_status == 'DELIVERED':
+        if delivery.vehicle:
+            delivery.vehicle.is_available = True
+        if delivery.driver:
+            delivery.driver.is_available = True
         delivery.order.status = 'DELIVERED'
         if delivery.order.customer_id:
             db.session.add(Notification(user_id=delivery.order.customer_id, title='Order delivered', message=f'Order #{delivery.order_id} has been delivered.'))

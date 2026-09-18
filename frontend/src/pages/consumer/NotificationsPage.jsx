@@ -67,7 +67,7 @@ export default function NotificationsPage() {
     const countFor = (category) => (category === 'ALL' ? items.length : items.filter((item) => categoryFor(item) === category).length);
 
     return (
-        <main className="notifications-page">
+        <main className={`notifications-page ${user.role === 'bulk_buyer' ? 'bulk-buyer-notifications-page' : ''}`}>
             <div className="notifications-container">
                 <Link className="notifications-back-link" to={dashboardPath}>
                     <ArrowLeft size={15} />

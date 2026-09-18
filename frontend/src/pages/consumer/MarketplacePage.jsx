@@ -5,6 +5,7 @@ import { addToCart, getProducts } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
 
 export default function MarketplacePage() {
+    const isBulkBuyer = JSON.parse(localStorage.getItem('farmdirect_user') || '{}').role === 'bulk_buyer';
     const [searchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -44,9 +45,10 @@ export default function MarketplacePage() {
     }
 
     const featuredCategories = ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Organic'];
+    const dashboardPath = isBulkBuyer ? '/dashboard/bulk-buyer' : '/dashboard/consumer';
 
     return (
-        <main className="marketplace-page">
+        <main className={`marketplace-page ${isBulkBuyer ? 'bulk-buyer-marketplace' : ''}`}>
             <div className="container">
                 <div className="marketplace-shell">
                     <header className="marketplace-topbar">
@@ -54,7 +56,7 @@ export default function MarketplacePage() {
                             <div className="marketplace-brand-mark">FD</div>
                             <div>
                                 <span className="marketplace-brand-label">FarmDirect AI</span>
-                                <h1>Marketplace</h1>
+                                <h1>{isBulkBuyer ? 'Find Products' : 'Marketplace'}</h1>
                             </div>
                         </div>
 
@@ -130,7 +132,7 @@ export default function MarketplacePage() {
                         <aside className="marketplace-sidebar card">
                             <div className="marketplace-sidebar-head">
                                 <span>Quick picks</span>
-                                <Link to="/dashboard/consumer">Dashboard <ArrowRight size={13} /></Link>
+                                <Link to={dashboardPath}>Dashboard <ArrowRight size={13} /></Link>
                             </div>
 
                             <div className="marketplace-category-list">

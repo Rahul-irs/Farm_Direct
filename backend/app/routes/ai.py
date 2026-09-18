@@ -86,7 +86,8 @@ def demand_forecast():
     sold_quantity, order_lines = query.one()
     if not order_lines:
         return jsonify({'success': True, 'forecast': None, 'message': 'Insufficient historical order data for a reliable forecast.'})
-    return jsonify({'success': True, 'forecast': {'crop': crop or 'All crops', 'observed_demand': float(sold_quantity), 'order_lines': order_lines, 'demand_level': 'HIGH' if sold_quantity >= 100 else 'MODERATE' if sold_quantity >= 25 else 'LOW'}})
+    observed_demand = float(sold_quantity)
+    return jsonify({'success': True, 'forecast': {'crop': crop or 'All crops', 'observed_demand': observed_demand, 'order_lines': order_lines, 'demand_level': 'HIGH' if sold_quantity >= 100 else 'MODERATE' if sold_quantity >= 25 else 'LOW', 'forecasted_7_day': round(observed_demand * 0.35, 2), 'forecasted_30_day': round(observed_demand * 1.2, 2)}})
 
 
 @ai_bp.get('/supplier-matches')

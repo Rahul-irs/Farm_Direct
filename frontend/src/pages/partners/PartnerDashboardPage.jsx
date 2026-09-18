@@ -1,242 +1,9 @@
-import { ArrowLeft, ArrowRight, BarChart3, Bell, Boxes, Building2, CheckCircle2, ClipboardList, Factory, LayoutDashboard, MapPin, PackageCheck, Plus, RefreshCw, Search, Settings, ShieldCheck, ShoppingBasket, Sparkles, Store, Tractor, Trash2, Truck, Users, Wheat } from 'lucide-react';
+import { ArrowRight, BarChart3, Bell, Boxes, CheckCircle2, ClipboardList, LayoutDashboard, Plus, RefreshCw, Search, Settings, ShieldCheck, ShoppingBasket, Store, Tractor, Truck, Users, Wheat } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { createPartnerRecord, deletePartnerRecord, getPartnerRecords, getPartnerRequirementMatches } from '../../services/api';
+import { changePassword, createPartnerRecord, deletePartnerRecord, getFpoOverview, getNotifications, getPartnerRecords, getPartnerRequirementMatches, markNotificationRead, updatePartnerRecord, updateProfile } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
-
-function BulkBuyerWorkspace() {
-    const storedUser = JSON.parse(localStorage.getItem('farmdirect_user') || '{}');
-    const fullName = storedUser.full_name || storedUser.name || '';
-    const emailLocalPart = (storedUser.email || '').split('@')[0] || 'Bulk Buyer';
-    const displayName = fullName || emailLocalPart || 'Bulk Buyer';
-    const firstName = displayName.split(/\s+/).filter(Boolean)[0] || 'Bulk Buyer';
-    const avatarInitials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'BB';
-    const [records, setRecords] = useState([]);
-    const [matches, setMatches] = useState({});
-    const [form, setForm] = useState({ crop: '', quantity: '', location: '' });
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    async function load() {
-        setLoading(true);
-        setError('');
-        try { const result = await getPartnerRecords('bulk/requirements'); const requirements = result.items || []; setRecords(requirements); const matchResults = await Promise.all(requirements.map(async (record) => { try { return [record.id, (await getPartnerRequirementMatches(record.id)).matches || []]; } catch { return [record.id, []]; } })); setMatches(Object.fromEntries(matchResults)); }
-        catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to load requirements'); }
-        finally { setLoading(false); }
-    }
-    useEffect(() => { load(); }, []);
-    async function submit(event) {
-        event.preventDefault();
-        setError('');
-        try { await createPartnerRecord('bulk/requirements', { crop: form.crop, quantity: Number(form.quantity), location: form.location }); setForm({ crop: '', quantity: '', location: '' }); setMessage('Requirement published to your buying desk.'); await load(); }
-        catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to save requirement'); }
-    }
-    async function remove(record) {
-        if (!window.confirm(`Delete the ${record.crop} requirement? It will be removed permanently.`)) return;
-        try { await deletePartnerRecord('bulk/requirements', record.id); setRecords((current) => current.filter((item) => item.id !== record.id)); setMatches((current) => { const next = { ...current }; delete next[record.id]; return next; }); setMessage(`${record.crop} requirement deleted permanently.`); }
-        catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to delete requirement'); }
-    }
-    const totalVolume = useMemo(() => records.reduce((total, record) => total + Number(record.quantity || 0), 0), [records]);
-    const featuredProduct = useMemo(() => Object.values(matches).flat()[0], [matches]);
-    const buyerCategories = [
-        { title: 'Government / Institutional Buyers', description: 'Bulk orders for public procurement, institutions, and catering needs.', Icon: Building2 },
-        { title: 'Retailers', description: 'Multi-location orders with predictable supply planning and fast replenishment.', Icon: Store },
-        { title: 'Distributors', description: 'Steady volumes, route coverage, and reliable sourcing across growing markets.', Icon: Factory },
-        { title: 'Organizations', description: 'Consistent supply for schools, canteens, and network operations.', Icon: Users },
-        { title: 'Other Bulk Purchasers', description: 'Flexible procurement for managed demand and multi-vendor buying programs.', Icon: PackageCheck },
-    ];
-    const benefits = [
-        { title: 'Better procurement', description: 'Compare supply against demand in one live operating view.', Icon: ClipboardList },
-        { title: 'Large-volume ordering', description: 'Set high-volume requirements with confidence and clarity.', Icon: ShoppingBasket },
-        { title: 'Fast order management', description: 'Keep quantities, routes, and partner matches coordinated.', Icon: Truck },
-        { title: 'Transparent process', description: 'Every requirement stays visible and easy to manage.', Icon: ShieldCheck },
-    ];
-    const workflowSteps = [
-        'Select products',
-        'Specify quantity',
-        'Review bulk order',
-        'Delivery coordination',
-        'Secure payment',
-    ];
-    const scrollToBrief = () => {
-        const formElement = document.getElementById('bulk-buyer-brief-form');
-        if (formElement) {
-            formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    };
-
-    return <main className="bulk-buyer-page"><div className="bulk-buyer-shell">
-        <aside className="bulk-buyer-sidebar">
-            <div className="bulk-buyer-profile">
-                <div className="bulk-buyer-avatar"><span>{avatarInitials}</span></div>
-                <div className="bulk-buyer-profile-meta">
-                    <strong>{displayName}</strong>
-                    <small>Bulk buyer desk</small>
-                </div>
-            </div>
-            <nav className="bulk-buyer-sidebar-nav" aria-label="Bulk buyer navigation">
-                <Link className="bulk-buyer-nav-item active" to="/dashboard/bulk-buyer"><ShoppingBasket size={16}/> Dashboard</Link>
-                <Link className="bulk-buyer-nav-item" to="/profile"><ArrowLeft size={16}/> Profile</Link>
-                <button className="bulk-buyer-nav-item bulk-buyer-nav-button" type="button"><ClipboardList size={16}/> Requirements</button>
-                <button className="bulk-buyer-nav-item bulk-buyer-nav-button" type="button"><ShieldIcon /> Compliance</button>
-            </nav>
-            <div className="bulk-buyer-sidebar-foot">
-                <div className="bulk-buyer-pill"><CheckCircle2 size={14}/> Live sourcing</div>
-            </div>
-        </aside>
-        <div className="bulk-buyer-main-panel">
-            <header className="bulk-buyer-toolbar">
-                <div className="bulk-buyer-toolbar-copy">
-                    <span className="bulk-buyer-kicker"><Sparkles size={14}/> Procurement control room</span>
-                    <h1>Good Morning, {firstName}.</h1>
-                    <p>Connecting farmers directly to buyers.</p>
-                </div>
-                <div className="bulk-buyer-toolbar-actions">
-                    <button type="button" className="bulk-buyer-icon-button" aria-label="Refresh buying desk" onClick={load} disabled={loading}><RefreshCw size={15}/></button>
-                    <button type="button" className="bulk-buyer-icon-button" aria-label="Notifications"><ShieldCheck size={16}/></button>
-                    <button type="button" className="bulk-buyer-icon-button" aria-label="Settings"><Plus size={16}/></button>
-                </div>
-            </header>
-
-            <section className="bulk-buyer-hero">
-                <div className="bulk-buyer-hero-copy">
-                    <span className="bulk-buyer-hero-badge"><Sparkles size={14}/> Bulk procurement</span>
-                    <h2>Bulk Buying Made Simple</h2>
-                    <p>Discover trusted supply, manage large-volume requirements, and keep your ordering process efficient from sourcing to delivery.</p>
-                    <div className="bulk-buyer-hero-actions">
-                        <button type="button" className="bulk-buyer-primary-cta" onClick={scrollToBrief}>Start Bulk Order <ArrowRight size={16}/></button>
-                        <div className="bulk-buyer-mini-metric"><span>Live supply</span><strong>{Object.values(matches).flat().length}</strong></div>
-                    </div>
-                </div>
-                <div className="bulk-buyer-hero-visual" aria-hidden="true">
-                    <div className="bulk-buyer-floating-card bulk-buyer-floating-card--top">
-                        <span>Procured</span>
-                        <strong>{totalVolume.toLocaleString('en-IN')}</strong>
-                        <small>units this cycle</small>
-                    </div>
-                    <div className="bulk-buyer-hero-panel">
-                        {featuredProduct ? <img src={getProductImage(featuredProduct)} alt={`${featuredProduct.name} from a farm partner`}/> : <img src={getProductImage({ name: 'Tomato' })} alt="Fresh produce from FarmDirect"/>}
-                    </div>
-                    <div className="bulk-buyer-floating-card bulk-buyer-floating-card--bottom">
-                        <span>Best match</span>
-                        <strong>{featuredProduct?.name || 'Fresh produce'}</strong>
-                        <small>{featuredProduct ? `${featuredProduct.location}` : 'Regional partner'}</small>
-                    </div>
-                </div>
-            </section>
-
-            <section className="bulk-buyer-category-panel">
-                <div className="bulk-buyer-section-head">
-                    <span className="bulk-buyer-kicker">Buyer segments</span>
-                    <h3>Built for every bulk buyer</h3>
-                </div>
-                <div className="bulk-buyer-categories">
-                    {buyerCategories.map(({ title, description, Icon }, index) => (
-                        <article className="bulk-buyer-category-card" key={title} style={{ animationDelay: `${index * 90}ms` }}>
-                            <div className="bulk-buyer-category-icon"><Icon size={18}/></div>
-                            <h4>{title}</h4>
-                            <p>{description}</p>
-                        </article>
-                    ))}
-                </div>
-            </section>
-
-            {message && <p className="bulk-buyer-notice" role="status"><CheckCircle2 size={16}/>{message}</p>}{error && <p className="bulk-buyer-error" role="alert">{error}</p>}
-
-            <section className="bulk-buyer-command-stats">
-                <div className="bulk-buyer-stat-card bulk-buyer-stat-card--primary"><span>Active briefs</span><strong>{records.length}</strong><small>requests in motion</small></div>
-                <div className="bulk-buyer-stat-card"><span>Demand volume</span><strong>{totalVolume.toLocaleString('en-IN')}</strong><small>units requested</small></div>
-                <div className="bulk-buyer-stat-card"><span>Supply matches</span><strong>{Object.values(matches).flat().length}</strong><small>farm listings found</small></div>
-                <div className="bulk-buyer-stat-card"><span>Destinations</span><strong>{new Set(records.map((record) => record.location)).size}</strong><small>buying routes covered</small></div>
-            </section>
-
-            <section className="bulk-buyer-workflow">
-                <div className="bulk-buyer-section-head">
-                    <span className="bulk-buyer-kicker">Procurement flow</span>
-                    <h3>How bulk buying works</h3>
-                </div>
-                <div className="bulk-buyer-workflow-steps">
-                    {workflowSteps.map((step, index) => (
-                        <div className="bulk-buyer-workflow-step" key={step} style={{ animationDelay: `${index * 100}ms` }}>
-                            <div className="bulk-buyer-workflow-icon">0{index + 1}</div>
-                            <span>{step}</span>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            <section className="bulk-buyer-benefits">
-                {benefits.map(({ title, description, Icon }, index) => (
-                    <article className="bulk-buyer-benefit-card" key={title} style={{ animationDelay: `${index * 120}ms` }}>
-                        <div className="bulk-buyer-benefit-icon"><Icon size={18}/></div>
-                        <h4>{title}</h4>
-                        <p>{description}</p>
-                    </article>
-                ))}
-            </section>
-
-            <div className="bulk-buyer-command-grid">
-                <form id="bulk-buyer-brief-form" className="bulk-buyer-form bulk-buyer-brief-panel" onSubmit={submit}>
-                    <div className="bulk-buyer-heading">
-                        <div>
-                            <span className="bulk-buyer-label">01 / Publish a brief</span>
-                            <h2>What should we source?</h2>
-                        </div>
-                        <div className="bulk-buyer-form-badge"><Plus size={18}/></div>
-                    </div>
-                    <div className="bulk-buyer-form-fields">
-                        <label>
-                            <span>Crop or product</span>
-                            <div className="bulk-buyer-input"><Wheat size={16}/><input value={form.crop} onChange={(event) => setForm({ ...form, crop: event.target.value })} placeholder="Onion, tomato, rice" required/></div>
-                        </label>
-                        <label>
-                            <span>Quantity required</span>
-                            <div className="bulk-buyer-input"><ClipboardList size={16}/><input type="number" min="0.01" step="0.01" value={form.quantity} onChange={(event) => setForm({ ...form, quantity: event.target.value })} placeholder="Enter volume" required/></div>
-                        </label>
-                        <label>
-                            <span>Delivery location</span>
-                            <div className="bulk-buyer-input"><MapPin size={16}/><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="City or distribution hub" required/></div>
-                        </label>
-                    </div>
-                    <button className="bulk-buyer-submit" type="submit" disabled={loading}><Plus size={16}/> {loading ? 'Updating buying desk...' : 'Publish requirement'}</button>
-                    <p className="bulk-buyer-form-note">The brief stays private to your account until you remove it.</p>
-                </form>
-
-                <section className="bulk-buyer-requirements bulk-buyer-queue-panel">
-                    <div className="bulk-buyer-list-heading">
-                        <div>
-                            <span className="bulk-buyer-label">02 / Active queue</span>
-                            <h2>Requests in motion</h2>
-                        </div>
-                        <button className="bulk-buyer-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={15}/> {loading ? 'Refreshing' : 'Refresh'}</button>
-                    </div>
-                    <div className="bulk-buyer-list">
-                        {records.map((record, index) => <article className="bulk-buyer-record" key={record.id}>
-                            <div className="bulk-buyer-record-number">0{index + 1}</div>
-                            <div className="bulk-buyer-record-main">
-                                <div>
-                                    <h3>{record.crop}</h3>
-                                    <span className="bulk-buyer-open">{record.status || 'OPEN'}</span>
-                                </div>
-                                <p><ClipboardList size={14}/> {record.quantity} units <i>·</i> <MapPin size={14}/> {record.location}</p>
-                            </div>
-                            <div className="bulk-buyer-record-actions">
-                                <button type="button" title="Remove requirement" aria-label={`Delete ${record.crop} requirement`} onClick={() => remove(record)}><Trash2 size={15}/></button>
-                            </div>
-                            <div className="bulk-buyer-matches">
-                                <div className="bulk-buyer-matches-heading"><span>Available farm partners</span><b>{matches[record.id]?.length || 0} matches</b></div>
-                                {matches[record.id]?.length ? <div className="bulk-buyer-match-list">{matches[record.id].slice(0, 4).map((product) => <div className="bulk-buyer-match" key={product.id}><img src={getProductImage(product)} alt=""/><div><strong>{product.name}</strong><span>{product.quantity} {product.unit} · {product.location}</span></div><b>₹{product.price}<small>/{product.unit}</small></b></div>)}</div> : <p className="bulk-buyer-no-match">No available farm listing meets this volume yet.</p>}
-                            </div>
-                        </article>)}
-                        {records.length === 0 && <div className="bulk-buyer-empty"><ShoppingBasket size={32}/><h3>Your buying queue is clear</h3><p>Publish a requirement to start sourcing from verified farm partners.</p></div>}
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div></main>;
-}
-
-function ShieldIcon() { return <ShieldCheck size={14}/>; }
+import FpoSettingsPage from './FpoSettingsPage';
 
 function FpoWorkspace() {
     const location = useLocation();
@@ -245,6 +12,21 @@ function FpoWorkspace() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
+    const [overview, setOverview] = useState({ metrics: {}, top_crops: [], recent_orders: [] });
+    const [memberSearch, setMemberSearch] = useState('');
+    const [memberStatus, setMemberStatus] = useState('ALL');
+    const [showMemberForm, setShowMemberForm] = useState(false);
+    const [newMemberId, setNewMemberId] = useState('');
+    const [farmerSearch, setFarmerSearch] = useState('');
+    const [farmerCrop, setFarmerCrop] = useState('ALL');
+    const [bulkBuyerRequests, setBulkBuyerRequests] = useState([]);
+    const [bulkBuyerStatus, setBulkBuyerStatus] = useState('ALL');
+    const [fpoNotifications, setFpoNotifications] = useState([]);
+    const [fpoProfile, setFpoProfile] = useState({ full_name: '', email: '', phone: '', address: '', language: '' });
+    const [fpoPassword, setFpoPassword] = useState({ current: '', next: '' });
+    const [fpoSettingsEditing, setFpoSettingsEditing] = useState(false);
+    const [fpoDeliveries, setFpoDeliveries] = useState([]);
+    const [fpoAnalytics, setFpoAnalytics] = useState({ metrics: {}, by_crop: [] });
 
     async function load() {
         setLoading(true);
@@ -254,10 +36,24 @@ function FpoWorkspace() {
                 getPartnerRecords('fpo/aggregations'),
                 getPartnerRecords('fpo/members'),
             ]);
+            const overviewResult = await getFpoOverview();
+            const bulkBuyerResult = await getPartnerRecords('fpo/bulk-buyers');
+            const [deliveryResult, analyticsResult] = await Promise.all([
+                getPartnerRecords('fpo/logistics'),
+                getPartnerRecords('fpo/analytics'),
+            ]);
+            const notificationResult = await getNotifications();
+            const storedUser = JSON.parse(localStorage.getItem('farmdirect_user') || '{}');
+            setFpoNotifications(notificationResult.items || []);
+            setFpoProfile({ full_name: storedUser.full_name || '', email: storedUser.email || '', phone: storedUser.phone || '', address: storedUser.profile_data?.address || '', language: storedUser.profile_data?.language || '' });
             const nextAggregations = aggregationResult.items || [];
             const nextMembers = memberResult.items || [];
             setAggregations(nextAggregations);
-            setMembers(nextMembers);
+            setMembers(overviewResult.members || nextMembers);
+            setOverview(overviewResult);
+            setBulkBuyerRequests(bulkBuyerResult.items || []);
+            setFpoDeliveries(deliveryResult.items || []);
+            setFpoAnalytics(analyticsResult);
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to load FPO workspace');
         } finally {
@@ -267,10 +63,127 @@ function FpoWorkspace() {
 
     useEffect(() => { load(); }, []);
 
+    async function addMember(event) {
+        event.preventDefault();
+        setError('');
+        try {
+            await createPartnerRecord('fpo/members', { farmer_id: Number(newMemberId) });
+            setNewMemberId('');
+            setShowMemberForm(false);
+            setMessage('Farmer added to your FPO network.');
+            await load();
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : 'Unable to add farmer');
+        }
+    }
+
     const totalVolume = useMemo(() => aggregations.reduce((total, record) => total + Number(record.quantity || 0), 0), [aggregations]);
     const cropCount = new Set((aggregations || []).map((record) => String(record.crop || '').toLowerCase()).filter(Boolean)).size;
     const memberPreview = members.slice(0, 3);
     const ledgerPreview = aggregations.slice(0, 3);
+    const overviewMetrics = overview.metrics || {};
+    const topCrops = overview.top_crops || [];
+    const recentOrders = overview.recent_orders || [];
+    const farmerSupply = overview.farmer_supply || [];
+    const isOverview = location.pathname === '/dashboard/fpo' || location.pathname === '/fpo';
+    const isMembers = location.pathname === '/fpo/members';
+    const isFarmers = location.pathname === '/fpo/farmers';
+    const isAggregation = location.pathname === '/fpo/aggregations';
+    const [aggregationCrop, setAggregationCrop] = useState('');
+    const [aggregationQuantity, setAggregationQuantity] = useState('');
+    const [aggregationStatus, setAggregationStatus] = useState('ALL');
+        const [marketSearch, setMarketSearch] = useState('');
+        const [marketCategory, setMarketCategory] = useState('ALL');
+        const [inventoryCategory, setInventoryCategory] = useState('ALL');
+        const [inventorySearch, setInventorySearch] = useState('');
+        const [inventoryQuantities, setInventoryQuantities] = useState({});
+        const [savingInventory, setSavingInventory] = useState(null);
+        const marketplace = overview.marketplace || [];
+        const isMarketplace = location.pathname === '/fpo/marketplace';
+        const isInventory = location.pathname === '/fpo/inventory';
+        const isBulkBuyers = location.pathname === '/fpo/bulk-buyers';
+        const isLogistics = location.pathname === '/fpo/logistics';
+        const isAnalytics = location.pathname === '/fpo/analytics';
+        const isNotifications = location.pathname === '/fpo/notifications';
+        const isSettings = location.pathname === '/fpo/settings';
+    const filteredMembers = members.filter((member) => {
+        const matchesSearch = `${member.name || ''} ${member.farmer_id || ''}`.toLowerCase().includes(memberSearch.trim().toLowerCase());
+        return matchesSearch && (memberStatus === 'ALL' || member.status === memberStatus);
+    });
+    const farmerCrops = [...new Set(farmerSupply.flatMap((farmer) => farmer.crops || []))].sort();
+    const filteredFarmers = farmerSupply.filter((farmer) => {
+        const matchesSearch = `${farmer.name} ${farmer.farmer_id} ${farmer.location}`.toLowerCase().includes(farmerSearch.trim().toLowerCase());
+        return matchesSearch && (farmerCrop === 'ALL' || farmer.crops.includes(farmerCrop));
+    });
+    const filteredAggregations = aggregations.filter((record) => aggregationStatus === 'ALL' || record.status === aggregationStatus);
+        const marketCategories = [...new Set(marketplace.map((product) => product.category).filter(Boolean))].sort();
+        const filteredMarketplace = marketplace.filter((product) => {
+            const matchesSearch = `${product.name} ${product.crop} ${product.location}`.toLowerCase().includes(marketSearch.trim().toLowerCase());
+            return matchesSearch && (marketCategory === 'ALL' || product.category === marketCategory);
+        });
+        const inventoryCategories = [...new Set(marketplace.map((product) => product.category).filter(Boolean))].sort();
+        const filteredInventory = marketplace.filter((product) => {
+            const matchesSearch = `${product.name} ${product.crop} ${product.location}`.toLowerCase().includes(inventorySearch.trim().toLowerCase());
+            return matchesSearch && (inventoryCategory === 'ALL' || product.category === inventoryCategory);
+        });
+        const filteredBulkBuyerRequests = bulkBuyerRequests.filter((requestItem) => bulkBuyerStatus === 'ALL' || requestItem.status === bulkBuyerStatus);
+        const deliveryCounts = fpoDeliveries.reduce((counts, delivery) => ({ ...counts, [delivery.status]: (counts[delivery.status] || 0) + 1 }), {});
+        const unreadFpoNotifications = fpoNotifications.filter((item) => !item.is_read).length;
+        async function readFpoNotification(item) {
+            try { await markNotificationRead(item.id); setFpoNotifications((current) => current.map((entry) => entry.id === item.id ? { ...entry, is_read: true } : entry)); } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to update notification'); }
+        }
+        async function saveFpoSettings(event) {
+            event.preventDefault();
+            setError('');
+            try {
+                const result = await updateProfile(fpoProfile);
+                localStorage.setItem('farmdirect_user', JSON.stringify({ ...JSON.parse(localStorage.getItem('farmdirect_user') || '{}'), ...result.user }));
+                setFpoSettingsEditing(false);
+                setMessage('FPO settings saved successfully.');
+            } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to save FPO settings'); }
+        }
+        async function saveFpoPassword(event) {
+            event.preventDefault();
+            try { await changePassword(fpoPassword.current, fpoPassword.next); setFpoPassword({ current: '', next: '' }); setMessage('Password updated successfully.'); } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to change password'); }
+        }
+        async function updateBulkBuyerStatus(requestItem, status) {
+            setError('');
+            try {
+                await updatePartnerRecord(`fpo/bulk-buyers/${requestItem.id}`, { status });
+                setBulkBuyerRequests((current) => current.map((item) => item.id === requestItem.id ? { ...item, status } : item));
+                setMessage(`Request #${requestItem.id} marked ${status.toLowerCase().replace('_', ' ')}.`);
+            } catch (requestError) {
+                setError(requestError instanceof Error ? requestError.message : 'Unable to update bulk request');
+            }
+        }
+        async function saveInventory(product) {
+            setSavingInventory(product.id);
+            setError('');
+            try {
+                await updatePartnerRecord(`fpo/inventory/${product.id}`, { quantity: Number(inventoryQuantities[product.id] ?? product.quantity) });
+                setMessage(`${product.name} inventory updated.`);
+                await load();
+            } catch (requestError) {
+                setError(requestError instanceof Error ? requestError.message : 'Unable to update inventory');
+            } finally {
+                setSavingInventory(null);
+            }
+        }
+    async function addAggregation(event) {
+        event.preventDefault();
+        setError('');
+        try {
+            await createPartnerRecord('fpo/aggregations', { crop: aggregationCrop, quantity: Number(aggregationQuantity) });
+            setAggregationCrop('');
+            setAggregationQuantity('');
+            setMessage('Crop aggregation added to inventory.');
+            await load();
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : 'Unable to add aggregation');
+        }
+    }
+    const monthlySales = Object.entries(overview.monthly_sales || {});
+    const maxMonthlySales = Math.max(...monthlySales.map(([, value]) => Number(value)), 1);
     const sidebarItems = [
         ['Dashboard', '/dashboard/fpo', LayoutDashboard],
         ['Members', '/fpo/members', Users],
@@ -325,14 +238,62 @@ function FpoWorkspace() {
                                 <RefreshCw size={15} />
                                 {loading ? 'Refresh' : 'Refresh'}
                             </button>
-                            <button type="button" className="fpo-icon-button" aria-label="Notifications">
-                                <Bell size={15} />
-                            </button>
-                            <div className="fpo-avatar">G</div>
+                            <Link className="fpo-icon-button" to="/fpo/notifications" aria-label="Notifications"><Bell size={15} /></Link>
+                            <Link className="fpo-avatar" to="/profile" aria-label="Open FPO profile">G</Link>
                         </div>
                     </header>
 
-                    <div className="fpo-dashboard-grid">
+                    {isNotifications ? <section className="fpo-members-page fpo-notifications-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO activity</span><h1>Notifications</h1><p>Stay updated on farmer, buyer, payment, and delivery activity.</p></div><button type="button" className="fpo-primary-action" onClick={load}><RefreshCw size={14} /> Refresh Alerts</button></div>
+                        <div className="fpo-farmer-summary"><div><span>🔔 Total alerts</span><strong>{fpoNotifications.length}</strong></div><div><span>🟠 Unread</span><strong>{unreadFpoNotifications}</strong></div><div><span>✅ Read</span><strong>{fpoNotifications.length - unreadFpoNotifications}</strong></div></div>
+                        <div className="fpo-notification-list">{fpoNotifications.map((item) => <article className={`fpo-notification-card ${item.is_read ? 'is-read' : ''}`} key={item.id}><span className="fpo-notification-icon">{item.title?.toLowerCase().includes('payment') ? '💳' : item.title?.toLowerCase().includes('delivery') || item.title?.toLowerCase().includes('shipment') ? '🚚' : item.title?.toLowerCase().includes('order') ? '🧾' : '🔔'}</span><div><h3>{item.title}</h3><p>{item.message}</p><small>{item.created_at ? new Date(item.created_at).toLocaleString('en-IN') : 'Recent update'}</small></div>{!item.is_read && <button type="button" className="fpo-primary-action fpo-save-button" onClick={() => readFpoNotification(item)}>Mark read</button>}</article>)}{!fpoNotifications.length && <div className="fpo-farmer-empty">No notifications yet.</div>}</div>
+                    </section> : false ? <section className="fpo-members-page fpo-settings-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO administration</span><h1>Settings</h1><p>Manage your FPO profile, account security, and notification preferences.</p></div><div className="fpo-settings-heading-actions"><span className="fpo-settings-verified">✓ Verified FPO</span><button type="button" className="fpo-primary-action" onClick={() => setFpoSettingsEditing((editing) => !editing)}>{fpoSettingsEditing ? 'Cancel' : 'Edit Profile'}</button></div></div>
+                        <div className="fpo-settings-layout"><form className="fpo-settings-form" onSubmit={saveFpoSettings}><div className="fpo-settings-form-head"><span className="fpo-settings-icon">🏢</span><div><h2>FPO Profile</h2><p>Keep your organisation details current.</p></div></div><label>FPO name<input required value={fpoProfile.full_name} onChange={(event) => setFpoProfile((current) => ({ ...current, full_name: event.target.value }))} /></label><label>Email<input required type="email" value={fpoProfile.email} onChange={(event) => setFpoProfile((current) => ({ ...current, email: event.target.value }))} /></label><label>Phone<input value={fpoProfile.phone} onChange={(event) => setFpoProfile((current) => ({ ...current, phone: event.target.value }))} /></label><label>Address<input value={fpoProfile.address} onChange={(event) => setFpoProfile((current) => ({ ...current, address: event.target.value }))} /></label><label>Preferred language<select value={fpoProfile.language} onChange={(event) => setFpoProfile((current) => ({ ...current, language: event.target.value }))}><option value="">Select language</option><option>English</option><option>Telugu</option><option>Hindi</option></select></label><button type="submit" className="fpo-primary-action"><CheckCircle2 size={14} /> Save Profile</button></form><form className="fpo-settings-form" onSubmit={saveFpoPassword}><div className="fpo-settings-form-head"><span className="fpo-settings-icon">🔐</span><div><h2>Security</h2><p>Update your account password.</p></div></div><label>Current password<input required type="password" value={fpoPassword.current} onChange={(event) => setFpoPassword((current) => ({ ...current, current: event.target.value }))} /></label><label>New password<input required minLength="8" type="password" value={fpoPassword.next} onChange={(event) => setFpoPassword((current) => ({ ...current, next: event.target.value }))} /></label><button type="submit" className="fpo-primary-action"><ShieldCheck size={14} /> Update Password</button></form></div>
+                    </section> : isSettings ? <FpoSettingsPage /> : isLogistics ? <section className="fpo-members-page fpo-logistics-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO operations</span><h1>Logistics &amp; Delivery</h1><p>Track every member-farmer shipment from pickup to delivery.</p></div><button type="button" className="fpo-primary-action" onClick={load}><RefreshCw size={14} /> Refresh Routes</button></div>
+                        <div className="fpo-farmer-summary"><div><span>🚚 Total deliveries</span><strong>{fpoDeliveries.length}</strong></div><div><span>🟢 In progress</span><strong>{(deliveryCounts.IN_TRANSIT || 0) + (deliveryCounts.PICKED_UP || 0) + (deliveryCounts.OUT_FOR_DELIVERY || 0)}</strong></div><div><span>✅ Delivered</span><strong>{deliveryCounts.DELIVERED || 0}</strong></div></div>
+                        <div className="fpo-delivery-board">{fpoDeliveries.map((delivery) => <article className="fpo-delivery-card" key={delivery.id}><div className="fpo-delivery-card-head"><span>🚚 Delivery #{delivery.id}</span><span className={`fpo-status-pill ${String(delivery.status).toLowerCase()}`}>{delivery.status.replace('_', ' ')}</span></div><div className="fpo-delivery-route"><strong>{delivery.pickup_location}</strong><ArrowRight size={14} /><strong>{delivery.destination}</strong></div><div className="fpo-delivery-meta"><span>📦 Order #{delivery.order_id}</span><span>{delivery.driver ? `👤 ${delivery.driver.full_name}` : 'Driver pending'}</span><span>{delivery.vehicle ? `🚛 ${delivery.vehicle.registration_number}` : 'Vehicle pending'}</span></div><div className="fpo-delivery-events">{delivery.events?.slice(-3).map((event) => <span key={event.id}>● {event.status.replace('_', ' ')}</span>)}</div></article>)}{!fpoDeliveries.length && <div className="fpo-farmer-empty">No deliveries are linked to your member farmers yet.</div>}</div>
+                    </section> : isAnalytics ? <section className="fpo-members-page fpo-analytics-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO intelligence</span><h1>FPO Analytics</h1><p>Understand sales, crop performance, and network activity.</p></div><button type="button" className="fpo-primary-action" onClick={load}><RefreshCw size={14} /> Refresh Analytics</button></div>
+                        <div className="fpo-farmer-summary"><div><span>💰 Total sales</span><strong>₹{Number(fpoAnalytics.metrics?.total_sales || 0).toLocaleString('en-IN')}</strong></div><div><span>📦 Total quantity</span><strong>{Number(fpoAnalytics.metrics?.total_quantity || 0).toLocaleString('en-IN')} kg</strong></div><div><span>🧾 Total orders</span><strong>{fpoAnalytics.metrics?.total_orders || 0}</strong></div></div>
+                        <div className="fpo-analytics-layout"><article className="fpo-card fpo-analytics-chart"><div className="fpo-card-head"><div><span className="fpo-card-label">Sales by crop</span><h3>Crop Performance</h3></div></div>{(fpoAnalytics.by_crop || []).length ? <div className="fpo-analytics-bars">{fpoAnalytics.by_crop.map((crop) => { const max = Math.max(...fpoAnalytics.by_crop.map((item) => Number(item.sales)), 1); return <div className="fpo-analytics-bar" key={crop.crop}><div><strong>{crop.crop}</strong><small>₹{Number(crop.sales).toLocaleString('en-IN')}</small></div><span style={{ width: `${Math.max(Number(crop.sales) / max * 100, 5)}%` }} /><small>{Number(crop.quantity).toLocaleString('en-IN')} kg</small></div>; })}</div> : <p className="fpo-analytics-empty">No completed sales data yet.</p>}</article><article className="fpo-card fpo-analytics-chart"><div className="fpo-card-head"><div><span className="fpo-card-label">Network health</span><h3>Active Farmers</h3></div></div><div className="fpo-analytics-ring"><strong>{fpoAnalytics.metrics?.active_farmers || 0}</strong><span>farmers</span></div><p className="fpo-analytics-note">Member activity is calculated from active FPO relationships.</p></article></div>
+                    </section> : isMembers ? <section className="fpo-members-page">
+                        <div className="fpo-section-heading">
+                            <div><span className="fpo-card-label">FPO network</span><h1>Members Management</h1><p>Manage the farmers connected to your FPO.</p></div>
+                            <button type="button" className="fpo-primary-action" onClick={() => setShowMemberForm((open) => !open)}><Plus size={14} /> Add Member</button>
+                        </div>
+                        {showMemberForm && <form className="fpo-member-form" onSubmit={addMember}><label>Farmer ID<input required type="number" min="1" value={newMemberId} onChange={(event) => setNewMemberId(event.target.value)} placeholder="Enter farmer ID" /></label><button type="submit" className="fpo-primary-action">Add Farmer</button></form>}
+                        <div className="fpo-member-toolbar"><label className="fpo-member-search"><Search size={14} /><input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Search by name or farmer ID..." aria-label="Search members" /></label><select value={memberStatus} onChange={(event) => setMemberStatus(event.target.value)} aria-label="Filter members by status"><option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="PENDING">Pending</option></select></div>
+                        <div className="fpo-members-table-wrap"><table className="fpo-members-table"><thead><tr><th>Farmer</th><th>Farmer ID</th><th>Village</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody>{filteredMembers.map((member) => <tr key={member.id}><td><span className="fpo-table-avatar">{String(member.name || 'Farmer').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><strong>{member.name || `Farmer #${member.farmer_id}`}</strong></td><td>FD-{String(member.farmer_id).padStart(4, '0')}</td><td>--</td><td>Farmer</td><td><span className={`fpo-status-pill ${String(member.status).toLowerCase()}`}>{member.status}</span></td><td>Active network</td></tr>)}{!filteredMembers.length && <tr><td className="fpo-empty-row" colSpan="6">No members match this filter.</td></tr>}</tbody></table></div><div className="fpo-members-footer"><span>Showing {filteredMembers.length} of {members.length} members</span><div><span>Page 1</span></div></div>
+                    </section> : isFarmers ? <section className="fpo-members-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO network</span><h1>Farmer Supply</h1><p>Monitor every farmer's live supply contribution.</p></div><Link className="fpo-primary-action" to="/fpo/members"><Users size={14} /> Manage Members</Link></div>
+                        <div className="fpo-farmer-summary"><div><span><i aria-hidden="true">👨‍🌾</i> Active farmers</span><strong>{farmerSupply.length}</strong></div><div><span><i aria-hidden="true">📦</i> Total supply</span><strong>{Number(overviewMetrics.supply || 0).toLocaleString('en-IN')} kg</strong></div><div><span><i aria-hidden="true">🌾</i> Crop lines</span><strong>{farmerCrops.length}</strong></div></div>
+                        <div className="fpo-member-toolbar"><label className="fpo-member-search"><Search size={14} /><input value={farmerSearch} onChange={(event) => setFarmerSearch(event.target.value)} placeholder="Search farmers or locations..." aria-label="Search farmers" /></label><select value={farmerCrop} onChange={(event) => setFarmerCrop(event.target.value)} aria-label="Filter farmers by crop"><option value="ALL">All crops</option>{farmerCrops.map((crop) => <option value={crop} key={crop}>{crop}</option>)}</select></div>
+                        <div className="fpo-farmer-grid">{filteredFarmers.map((farmer) => <article className="fpo-farmer-card" key={farmer.farmer_id}><div className="fpo-farmer-card-top"><span className="fpo-table-avatar">{String(farmer.name).split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}</span><div><h3>{farmer.name}</h3><small>FD-{String(farmer.farmer_id).padStart(4, '0')} · {farmer.location}</small></div><span className="fpo-status-pill active">● {farmer.status}</span></div><div className="fpo-farmer-card-stats"><div><span>📦 Supply</span><strong>{Number(farmer.quantity).toLocaleString('en-IN')} kg</strong></div><div><span>🧺 Listings</span><strong>{farmer.products}</strong></div></div><div className="fpo-farmer-crops">{farmer.crops.length ? farmer.crops.map((crop) => <span key={crop}>{({ Tomato: '🍅', Onion: '🧅', Rice: '🌾', Mango: '🥭', Banana: '🍌' }[crop] || '🥬')} {crop}</span>) : <span>🌱 No active listings</span>}</div></article>)}{!filteredFarmers.length && <div className="fpo-farmer-empty">No farmers match this filter.</div>}</div>
+                    </section> : isBulkBuyers ? <section className="fpo-members-page fpo-bulk-buyers-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO commerce</span><h1>Bulk Buyer Orders</h1><p>Review and coordinate high-volume requests from verified buyers.</p></div><button type="button" className="fpo-primary-action" onClick={load}><RefreshCw size={14} /> Refresh Requests</button></div>
+                        <div className="fpo-request-tabs"><button className={bulkBuyerStatus === 'ALL' ? 'active' : ''} type="button" onClick={() => setBulkBuyerStatus('ALL')}>All Requests <b>{bulkBuyerRequests.length}</b></button><button className={bulkBuyerStatus === 'OPEN' ? 'active' : ''} type="button" onClick={() => setBulkBuyerStatus('OPEN')}>New Requests</button><button className={bulkBuyerStatus === 'ACCEPTED' ? 'active' : ''} type="button" onClick={() => setBulkBuyerStatus('ACCEPTED')}>Accepted</button><button className={bulkBuyerStatus === 'COMPLETED' ? 'active' : ''} type="button" onClick={() => setBulkBuyerStatus('COMPLETED')}>Completed</button><button className={bulkBuyerStatus === 'IN_TRANSIT' ? 'active' : ''} type="button" onClick={() => setBulkBuyerStatus('IN_TRANSIT')}>In Transit</button><button className={bulkBuyerStatus === 'DELIVERED' ? 'active' : ''} type="button" onClick={() => setBulkBuyerStatus('DELIVERED')}>Delivered</button></div>
+                        <div className="fpo-member-toolbar"><label className="fpo-member-search"><Search size={14} /><input placeholder="Search buyer requests..." aria-label="Search buyer requests" onChange={(event) => setMemberSearch(event.target.value)} /></label><span className="fpo-market-count">{filteredBulkBuyerRequests.length} requests</span></div>
+                        <div className="fpo-members-table-wrap"><table className="fpo-members-table fpo-bulk-table"><thead><tr><th>Buyer</th><th>Product</th><th>Quantity</th><th>Location</th><th>Budget</th><th>Status</th><th>Action</th></tr></thead><tbody>{filteredBulkBuyerRequests.filter((item) => `${item.buyer_name} ${item.crop} ${item.location}`.toLowerCase().includes(memberSearch.toLowerCase())).map((requestItem) => <tr key={requestItem.id}><td><span className="fpo-table-avatar">{String(requestItem.buyer_name).slice(0, 2).toUpperCase()}</span><strong>{requestItem.buyer_name}</strong></td><td><span className="fpo-crop-emoji">{{ Tomato: '🍅', Onion: '🧅', Rice: '🌾', Mango: '🥭', Banana: '🍌' }[requestItem.crop] || '🥬'}</span>{requestItem.crop}</td><td>{Number(requestItem.quantity).toLocaleString('en-IN')} kg</td><td>{requestItem.location}</td><td>{requestItem.estimated_value ? `₹${Number(requestItem.estimated_value).toLocaleString('en-IN')}` : 'Awaiting quote'}</td><td><span className={`fpo-status-pill ${String(requestItem.status).toLowerCase()}`}>{requestItem.status.replace('_', ' ')}</span></td><td>{requestItem.status === 'OPEN' ? <button type="button" className="fpo-primary-action fpo-save-button" onClick={() => updateBulkBuyerStatus(requestItem, 'ACCEPTED')}>Accept</button> : <button type="button" className="fpo-row-menu" onClick={() => setMessage(`Request #${requestItem.id} is ${requestItem.status.toLowerCase().replace('_', ' ')}.`)}>View</button>}</td></tr>)}{!filteredBulkBuyerRequests.length && <tr><td className="fpo-empty-row" colSpan="7">No bulk buyer requests match this filter.</td></tr>}</tbody></table></div>
+                    </section> : isInventory ? <section className="fpo-members-page fpo-inventory-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO stockroom</span><h1>Inventory</h1><p>Track and update produce collected from your member farmers.</p></div><Link className="fpo-primary-action" to="/fpo/aggregations"><Wheat size={14} /> Add Aggregation</Link></div>
+                        <div className="fpo-farmer-summary"><div><span>📦 Total inventory</span><strong>{Number(overviewMetrics.supply || 0).toLocaleString('en-IN')} kg</strong></div><div><span>🟢 Available listings</span><strong>{marketplace.length}</strong></div><div><span>⚠️ Low stock</span><strong>{marketplace.filter((product) => Number(product.quantity) < 100).length}</strong></div></div>
+                        <div className="fpo-market-tabs"><button type="button" className={inventoryCategory === 'ALL' ? 'active' : ''} onClick={() => setInventoryCategory('ALL')}>All Products</button>{inventoryCategories.map((category) => <button type="button" className={inventoryCategory === category ? 'active' : ''} onClick={() => setInventoryCategory(category)} key={category}>{category}</button>)}</div>
+                        <div className="fpo-member-toolbar"><label className="fpo-member-search"><Search size={14} /><input value={inventorySearch} onChange={(event) => setInventorySearch(event.target.value)} placeholder="Search inventory..." aria-label="Search inventory" /></label><span className="fpo-market-count">{filteredInventory.length} items</span></div>
+                        <div className="fpo-members-table-wrap"><table className="fpo-members-table fpo-inventory-table"><thead><tr><th>Product</th><th>Farmer</th><th>Available</th><th>Price</th><th>Status</th><th>Update</th></tr></thead><tbody>{filteredInventory.map((product) => { const quantity = inventoryQuantities[product.id] ?? product.quantity; const lowStock = Number(quantity) < 100; return <tr key={product.id}><td><span className="fpo-crop-emoji">{{ Tomato: '🍅', Onion: '🧅', Rice: '🌾', Mango: '🥭', Banana: '🍌' }[product.crop] || '🥬'}</span><strong>{product.name}</strong></td><td>FD-{String(product.farmer_id).padStart(4, '0')}</td><td><input className="fpo-quantity-input" type="number" min="0" value={quantity} onChange={(event) => setInventoryQuantities((current) => ({ ...current, [product.id]: event.target.value }))} aria-label={`Quantity for ${product.name}`} /> {product.unit}</td><td>₹{Number(product.price || 0).toLocaleString('en-IN')}</td><td><span className={`fpo-status-pill ${lowStock ? 'pending' : 'active'}`}>{lowStock ? 'LOW STOCK' : 'AVAILABLE'}</span></td><td><button type="button" className="fpo-primary-action fpo-save-button" disabled={savingInventory === product.id} onClick={() => saveInventory(product)}>{savingInventory === product.id ? 'Saving...' : 'Save'}</button></td></tr>; })}{!filteredInventory.length && <tr><td className="fpo-empty-row" colSpan="6">No inventory items match this filter.</td></tr>}</tbody></table></div>
+                    </section> : isMarketplace ? <section className="fpo-members-page fpo-marketplace-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO marketplace</span><h1>Fresh Produce Marketplace</h1><p>Browse and manage your FPO's active farmer listings.</p></div><Link className="fpo-primary-action" to="/fpo/aggregations"><Wheat size={14} /> Aggregate Supply</Link></div>
+                        <div className="fpo-market-tabs"><button type="button" className={marketCategory === 'ALL' ? 'active' : ''} onClick={() => setMarketCategory('ALL')}>All Products</button>{marketCategories.map((category) => <button type="button" className={marketCategory === category ? 'active' : ''} onClick={() => setMarketCategory(category)} key={category}>{category}</button>)}</div>
+                        <div className="fpo-member-toolbar"><label className="fpo-member-search"><Search size={14} /><input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} placeholder="Search products, crops, or farms..." aria-label="Search marketplace" /></label><span className="fpo-market-count">{filteredMarketplace.length} products</span></div>
+                        <div className="fpo-product-grid">{filteredMarketplace.map((product) => <article className="fpo-product-card" key={product.id}><div className="fpo-product-image"><img src={getProductImage(product)} alt={product.name} /><span>{product.quality || 'Grade A'}</span></div><div className="fpo-product-copy"><div><h3>{product.name}</h3><small>{product.location} · {product.crop}</small></div><strong>₹{Number(product.price || 0).toLocaleString('en-IN')}<small>/{product.unit}</small></strong></div><div className="fpo-product-footer"><span>📦 {Number(product.quantity || 0).toLocaleString('en-IN')} {product.unit} available</span><button type="button" className="fpo-row-menu" onClick={() => setMessage(`${product.name} listing selected.`)}>View <ArrowRight size={13} /></button></div></article>)}{!filteredMarketplace.length && <div className="fpo-farmer-empty">No marketplace listings match this filter.</div>}</div>
+                    </section> : isAggregation ? <section className="fpo-members-page">
+                        <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO operations</span><h1>Aggregation &amp; Farmer-wise Supply</h1><p>Combine farmer harvests into traceable, market-ready lots.</p></div><button type="button" className="fpo-primary-action" onClick={() => document.querySelector('.fpo-aggregation-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><Plus size={14} /> Add Aggregation</button></div>
+                        <div className="fpo-farmer-summary"><div><span>🌾 Aggregated volume</span><strong>{totalVolume.toLocaleString('en-IN')} kg</strong></div><div><span>📋 Active lots</span><strong>{aggregations.filter((record) => record.status === 'AVAILABLE').length}</strong></div><div><span>🥕 Crop lines</span><strong>{cropCount}</strong></div></div>
+                        <form className="fpo-aggregation-form" onSubmit={addAggregation}><div><label>Crop<input required value={aggregationCrop} onChange={(event) => setAggregationCrop(event.target.value)} placeholder="e.g. Tomato" /></label><label>Quantity (kg)<input required min="0.1" step="0.1" type="number" value={aggregationQuantity} onChange={(event) => setAggregationQuantity(event.target.value)} placeholder="0" /></label></div><button type="submit" className="fpo-primary-action"><Plus size={14} /> Create Lot</button></form>
+                        <div className="fpo-aggregation-toolbar"><span><strong>{filteredAggregations.length}</strong> aggregation lots</span><select value={aggregationStatus} onChange={(event) => setAggregationStatus(event.target.value)} aria-label="Filter aggregations by status"><option value="ALL">All statuses</option><option value="AVAILABLE">Available</option><option value="SOLD">Sold</option></select></div>
+                        <div className="fpo-members-table-wrap"><table className="fpo-members-table"><thead><tr><th>Crop</th><th>Lot ID</th><th>Quantity</th><th>Status</th><th>Source</th></tr></thead><tbody>{filteredAggregations.map((record) => <tr key={record.id}><td><span className="fpo-crop-emoji">{{ Tomato: '🍅', Onion: '🧅', Rice: '🌾', Mango: '🥭', Banana: '🍌' }[record.crop] || '🥬'}</span><strong>{record.crop}</strong></td><td>AG-{String(record.id).padStart(4, '0')}</td><td>{Number(record.quantity).toLocaleString('en-IN')} kg</td><td><span className={`fpo-status-pill ${String(record.status).toLowerCase()}`}>{record.status}</span></td><td>FPO collection</td></tr>)}{!filteredAggregations.length && <tr><td className="fpo-empty-row" colSpan="5">No aggregation lots match this filter.</td></tr>}</tbody></table></div>
+                    </section> : <div className={`fpo-dashboard-grid ${isOverview ? 'fpo-dashboard-grid--overview' : ''}`}>
                         <article className="fpo-card fpo-card--hero">
                             <div className="fpo-card-head small">
                                 <span className="fpo-kicker">Together We Grow</span>
@@ -346,25 +307,44 @@ function FpoWorkspace() {
                                     <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1200&q=80" alt="Farmer in field" />
                                     <div className="fpo-hero-badge">
                                         <span>Member strength</span>
-                                        <strong>{members.length || 2}</strong>
+                                        <strong>{overviewMetrics.farmers || 0}</strong>
                                     </div>
                                 </div>
                             </div>
                             <div className="fpo-mini-stats">
                                 <div className="fpo-mini-stat">
                                     <span>Members</span>
-                                    <strong>{members.length || 2}</strong>
+                                    <strong>{overviewMetrics.farmers || 0}</strong>
                                 </div>
                                 <div className="fpo-mini-stat">
                                     <span>Volume</span>
-                                    <strong>{totalVolume.toLocaleString('en-IN') || '1,256'}</strong>
+                                    <strong>{Number(overviewMetrics.supply || 0).toLocaleString('en-IN')} kg</strong>
                                 </div>
                                 <div className="fpo-mini-stat">
                                     <span>Crop lines</span>
-                                    <strong>{cropCount || 2}</strong>
+                                    <strong>{topCrops.length}</strong>
                                 </div>
                             </div>
                         </article>
+
+                        {isOverview && <>
+                            <section className="fpo-overview-metrics" aria-label="FPO overview metrics">
+                                <div><span>Total Farmers</span><strong>{overviewMetrics.farmers || 0}</strong><small>Active members</small></div>
+                                <div><span>Total Supply</span><strong>{(Number(overviewMetrics.supply || 0) / 1000).toFixed(1)} Ton</strong><small>Available inventory</small></div>
+                                <div><span>Total Sales</span><strong>₹{Number(overviewMetrics.sales || 0).toLocaleString('en-IN')}</strong><small>Completed orders</small></div>
+                                <div><span>Pending Orders</span><strong>{overviewMetrics.pending_orders || 0}</strong><small>Needs attention</small></div>
+                            </section>
+                            <article className="fpo-card fpo-overview-card fpo-overview-card--sales">
+                                <div className="fpo-card-head"><div><span className="fpo-card-label">Performance</span><h3>Monthly Sales Overview</h3></div><span className="fpo-overview-period">This year</span></div>
+                                <div className="fpo-sales-chart">
+                                    {monthlySales.length ? monthlySales.map(([month, value]) => <div className="fpo-sales-bar" key={month}><span style={{ height: `${Math.max((Number(value) / maxMonthlySales) * 100, 8)}%` }} /><small>{month}</small></div>) : <p>No completed sales recorded yet.</p>}
+                                </div>
+                            </article>
+                            <article className="fpo-card fpo-overview-card fpo-overview-card--crops">
+                                <div className="fpo-card-head"><div><span className="fpo-card-label">Inventory mix</span><h3>Top Crops</h3></div><Link className="fpo-card-action" to="/fpo/inventory">View all</Link></div>
+                                <div className="fpo-top-crops">{topCrops.length ? topCrops.slice(0, 5).map((crop) => <div key={crop.crop}><span className="fpo-crop-emoji" aria-hidden="true">{{ Tomato: '🍅', Onion: '🧅', Rice: '🌾', Mango: '🥭', Banana: '🍌' }[crop.crop] || '🥬'}</span><strong>{crop.crop}</strong><small>{Number(crop.quantity || 0).toLocaleString('en-IN')} kg</small></div>) : <p>No crop inventory recorded yet.</p>}</div>
+                            </article>
+                        </>}
 
                         <article className="fpo-card fpo-card--members">
                             <div className="fpo-card-head">
@@ -372,7 +352,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Members</span>
                                     <h3>Members Management</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">View all</button>
+                                <Link to="/fpo/members" className="fpo-card-action">View all</Link>
                             </div>
                             <div className="fpo-member-list">
                                 {memberPreview.length ? memberPreview.map((member) => (
@@ -399,7 +379,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Farmer Supply</span>
                                     <h3>Farmer-wise Supply</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">Details</button>
+                                <Link to="/fpo/farmers" className="fpo-card-action">Details</Link>
                             </div>
                             <div className="fpo-table-wrap">
                                 <table className="fpo-data-table">
@@ -421,12 +401,11 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Bulk Buyers</span>
                                     <h3>Bulk Orders</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">Open</button>
+                                <Link to="/fpo/bulk-buyers" className="fpo-card-action">Open</Link>
                             </div>
                             <div className="fpo-order-list">
-                                <div className="fpo-order-row"><span>Tomato</span><strong>500 kg</strong><small>₹12,500</small></div>
-                                <div className="fpo-order-row"><span>Rice</span><strong>180 kg</strong><small>₹9,700</small></div>
-                                <div className="fpo-order-row"><span>Onion</span><strong>240 kg</strong><small>₹8,300</small></div>
+                                {recentOrders.slice(0, 3).map((order) => <div className="fpo-order-row" key={order.id}><span>{order.crop}</span><strong>{order.quantity} kg</strong><small>₹{Number(order.amount || 0).toLocaleString('en-IN')}</small></div>)}
+                                {!recentOrders.length && <div className="fpo-order-row"><span>No orders yet</span><strong>--</strong><small>--</small></div>}
                             </div>
                         </article>
 
@@ -436,14 +415,12 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Analytics</span>
                                     <h3>FPO Analytics</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">This month</button>
+                                <span className="fpo-overview-period">This month</span>
                             </div>
                             <div className="fpo-chart-box">
-                                <div className="fpo-chart-ring"><span>₹ 6.45L</span></div>
+                                <div className="fpo-chart-ring"><span>₹ {(Number(overviewMetrics.sales || 0) / 100000).toFixed(2)}L</span></div>
                                 <div className="fpo-chart-legend">
-                                    <div><i className="dot green" /> Tomato</div>
-                                    <div><i className="dot gold" /> Rice</div>
-                                    <div><i className="dot orange" /> Onion</div>
+                                    {topCrops.slice(0, 3).map((crop) => <div key={crop.crop}><i className="dot green" /> {crop.crop}</div>)}
                                 </div>
                             </div>
                         </article>
@@ -454,12 +431,11 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">AI Insights</span>
                                     <h3>Demand Forecast</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">View</button>
+                                <Link to="/fpo/analytics" className="fpo-card-action">View</Link>
                             </div>
                             <div className="fpo-metric-list">
-                                <div><span>Tomato</span><strong>₹ 42.9k</strong></div>
-                                <div><span>Rice</span><strong>₹ 48.5k</strong></div>
-                                <div><span>Onion</span><strong>₹ 41.7k</strong></div>
+                                {topCrops.slice(0, 3).map((crop) => <div key={crop.crop}><span>{crop.crop}</span><strong>{Number(crop.quantity || 0).toLocaleString('en-IN')} kg</strong></div>)}
+                                {!topCrops.length && <div><span>No crop data yet</span><strong>--</strong></div>}
                             </div>
                         </article>
 
@@ -469,7 +445,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Logistics</span>
                                     <h3>Delivery Status</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">Track</button>
+                                <Link to="/fpo/logistics" className="fpo-card-action">Track</Link>
                             </div>
                             <div className="fpo-route-map">
                                 <div className="route-dots">
@@ -492,7 +468,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Payments</span>
                                     <h3>Settlements</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">Review</button>
+                                <Link to="/fpo/analytics" className="fpo-card-action">Review</Link>
                             </div>
                             <div className="fpo-payment-list">
                                 <div><span>Farmers</span><strong>₹ 32,500</strong></div>
@@ -507,7 +483,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Marketplace</span>
                                     <h3>Best Sellers</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">Open</button>
+                                <Link to="/fpo/marketplace" className="fpo-card-action">Open</Link>
                             </div>
                             <div className="fpo-market-grid">
                                 {['Tomato', 'Rice', 'Onion', 'Banana'].map((name, idx) => (
@@ -528,7 +504,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Notifications</span>
                                     <h3>Alerts</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">View all</button>
+                                <Link to="/fpo/notifications" className="fpo-card-action">View all</Link>
                             </div>
                             <ul className="fpo-alert-list">
                                 <li><strong>Shipment delay</strong><span>Tomato dispatch · 12 min</span></li>
@@ -543,7 +519,7 @@ function FpoWorkspace() {
                                     <span className="fpo-card-label">Settings</span>
                                     <h3>Workspace Settings</h3>
                                 </div>
-                                <button type="button" className="fpo-card-action">Manage</button>
+                                <Link to="/fpo/settings" className="fpo-card-action">Manage</Link>
                             </div>
                             <div className="fpo-settings-stack">
                                 <div><span>Profile</span><strong>Active</strong></div>
@@ -551,7 +527,7 @@ function FpoWorkspace() {
                                 <div><span>Pricing</span><strong>Synced</strong></div>
                             </div>
                         </article>
-                    </div>
+                    </div>}
 
                     {error && <p className="fpo-error" role="alert">{error}</p>}
                     {message && <p className="fpo-notice" role="status"><CheckCircle2 size={16} />{message}</p>}
@@ -561,10 +537,6 @@ function FpoWorkspace() {
     );
 }
 
-export default function PartnerDashboardPage({ role = 'fpo' }) {
-    if (role === 'bulk_buyer' || role === 'field_assistant') {
-        return <BulkBuyerWorkspace />;
-    }
-
+export default function PartnerDashboardPage() {
     return <FpoWorkspace />;
 }
