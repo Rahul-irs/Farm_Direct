@@ -1,9 +1,16 @@
-import { BarChart3, Bell, ClipboardList, CreditCard, LayoutDashboard, Search, Settings, ShoppingBasket, Sparkles, Truck, UserRound, Wheat } from 'lucide-react';
+import { BarChart3, Bell, ClipboardList, CreditCard, LayoutDashboard, LogOut, Search, Settings, ShoppingBasket, Sparkles, Truck, UserRound, Wheat } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function BulkBuyerSidebar() {
     const location = useLocation();
+    const navigate = useNavigate();
     const isActive = (path) => location.pathname === path || (path !== '/dashboard/bulk-buyer' && location.pathname.startsWith(`${path}/`));
+    function logout() {
+        localStorage.removeItem('farmdirect_token');
+        localStorage.removeItem('farmdirect_user');
+        navigate('/login');
+    }
     return <aside className="bulk-buyer-sidebar">
         <div className="bulk-buyer-rail-brand"><div className="bulk-buyer-rail-logo"><Wheat size={18}/></div><div><strong>FarmDirect AI</strong><small>Direct from Farm to You</small></div></div>
         <div className="bulk-buyer-role-badge"><span className="bulk-buyer-role-icon"><ShoppingBasket size={13}/></span><div><strong>Bulk Buyer</strong><small>Wholesale · Institutional</small></div></div>
@@ -20,6 +27,6 @@ export default function BulkBuyerSidebar() {
             <Link className={`bulk-buyer-nav-item ${isActive('/profile') ? 'active' : ''}`} to="/profile"><UserRound size={15}/> Profile</Link>
             <Link className={`bulk-buyer-nav-item bulk-buyer-nav-button ${isActive('/bulk-buyer/settings') ? 'active' : ''}`} to="/bulk-buyer/settings"><Settings size={15}/> Settings</Link>
         </nav>
-        <div className="bulk-buyer-sidebar-foot"><div className="bulk-buyer-support-card"><span className="bulk-buyer-support-mark"><Wheat size={13}/></span><div><strong>Growing Together</strong><small>Supporting Farmers</small></div></div></div>
+        <div className="bulk-buyer-sidebar-foot"><div className="bulk-buyer-support-card"><span className="bulk-buyer-support-mark"><Wheat size={13}/></span><div><strong>Growing Together</strong><small>Supporting Farmers</small></div></div><button type="button" className="bulk-buyer-nav-item bulk-buyer-logout" onClick={logout}><LogOut size={15}/> Log out</button></div>
     </aside>;
 }

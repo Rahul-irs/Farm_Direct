@@ -242,12 +242,11 @@
 .marketplace-banner {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(250px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: 20px;
   overflow: hidden;
   margin-top: 18px;
-  min-height: 280px;
+  min-height: 240px;
   border-radius: 28px;
   padding: 0;
   background: linear-gradient(135deg, rgba(20, 57, 39, 0.7), rgba(36, 90, 64, 0.55));
@@ -269,8 +268,8 @@
   z-index: 1;
 }
 .marketplace-banner-copy {
-  max-width: 520px;
-  padding: 28px 28px 26px;
+  max-width: 760px;
+  padding: 34px 34px 32px;
 }
 .marketplace-badge {
   display: inline-flex;
@@ -345,6 +344,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  margin-top: 18px;
   margin-top: 18px;
   padding: 12px;
   border-radius: 14px;
@@ -2534,6 +2534,7 @@ button, input, select, textarea { font: inherit; }
 .bulk-buyer-support-card div { display: grid; gap: 0.08rem; }
 .bulk-buyer-support-card strong { color: #d6f3e5; font-size: 0.58rem; }
 .bulk-buyer-support-card small { color: rgba(211, 234, 229, 0.52); font-size: 0.5rem; }
+.bulk-buyer-logout { margin-top: 0.8rem; cursor: pointer; font-family: inherit; }
 .bulk-buyer-main-panel { min-width: 0; flex: 1; padding: 1.15rem clamp(1rem, 2.2vw, 2.15rem) 2.5rem; background: #f7fafc; }
 .bulk-buyer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1040px; margin: 0 auto; padding: 0.15rem 0 1rem; border-bottom: 1px solid #e8eef1; }
 .bulk-buyer-kicker, .bulk-buyer-label { color: var(--bulk-rust-strong); font-family: 'DM Mono', monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -3769,6 +3770,24 @@ button, input, select, textarea { font: inherit; }
   color: rgba(255,255,255,0.82);
   font-size: 0.76rem;
 }
+.fpo-sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  margin-top: 8px;
+  padding: 0.62rem 0.8rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(244,249,246,0.78);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fpo-sidebar-logout:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .fpo-live-pill {
   display: inline-flex;
   align-items: center;

@@ -1,12 +1,13 @@
-import { ArrowRight, BarChart3, Bell, Boxes, CheckCircle2, ClipboardList, LayoutDashboard, Plus, RefreshCw, Search, Settings, ShieldCheck, ShoppingBasket, Store, Tractor, Truck, Users, Wheat } from 'lucide-react';
+import { ArrowRight, BarChart3, Bell, Boxes, CheckCircle2, ClipboardList, LayoutDashboard, LogOut, Plus, RefreshCw, Search, Settings, ShieldCheck, ShoppingBasket, Store, Tractor, Truck, Users, Wheat } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { changePassword, createPartnerRecord, deletePartnerRecord, getFpoOverview, getNotifications, getPartnerRecords, getPartnerRequirementMatches, markNotificationRead, updatePartnerRecord, updateProfile } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
 import FpoSettingsPage from './FpoSettingsPage';
 
 function FpoWorkspace() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [aggregations, setAggregations] = useState([]);
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -106,6 +107,7 @@ function FpoWorkspace() {
         const isAnalytics = location.pathname === '/fpo/analytics';
         const isNotifications = location.pathname === '/fpo/notifications';
         const isSettings = location.pathname === '/fpo/settings';
+        const isProfile = location.pathname === '/fpo/profile';
     const filteredMembers = members.filter((member) => {
         const matchesSearch = `${member.name || ''} ${member.farmer_id || ''}`.toLowerCase().includes(memberSearch.trim().toLowerCase());
         return matchesSearch && (memberStatus === 'ALL' || member.status === memberStatus);
@@ -199,6 +201,11 @@ function FpoWorkspace() {
     ];
 
     const isActive = (path) => location.pathname === path || (path !== '/dashboard/fpo' && location.pathname.startsWith(path));
+    function logout() {
+        localStorage.removeItem('farmdirect_token');
+        localStorage.removeItem('farmdirect_user');
+        navigate('/login');
+    }
 
     return (
         <main className="fpo-page">
@@ -225,6 +232,7 @@ function FpoWorkspace() {
                         <span className="fpo-live-pill">Live</span>
                         <span>Harvest sync</span>
                     </div>
+                    <button type="button" className="fpo-sidebar-logout" onClick={logout}><LogOut size={15} /> Log out</button>
                 </aside>
 
                 <div className="fpo-main-panel">
@@ -239,7 +247,7 @@ function FpoWorkspace() {
                                 {loading ? 'Refresh' : 'Refresh'}
                             </button>
                             <Link className="fpo-icon-button" to="/fpo/notifications" aria-label="Notifications"><Bell size={15} /></Link>
-                            <Link className="fpo-avatar" to="/profile" aria-label="Open FPO profile">G</Link>
+                            <Link className="fpo-avatar" to="/fpo/profile" aria-label="Open FPO profile">G</Link>
                         </div>
                     </header>
 
@@ -250,7 +258,7 @@ function FpoWorkspace() {
                     </section> : false ? <section className="fpo-members-page fpo-settings-page">
                         <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO administration</span><h1>Settings</h1><p>Manage your FPO profile, account security, and notification preferences.</p></div><div className="fpo-settings-heading-actions"><span className="fpo-settings-verified">✓ Verified FPO</span><button type="button" className="fpo-primary-action" onClick={() => setFpoSettingsEditing((editing) => !editing)}>{fpoSettingsEditing ? 'Cancel' : 'Edit Profile'}</button></div></div>
                         <div className="fpo-settings-layout"><form className="fpo-settings-form" onSubmit={saveFpoSettings}><div className="fpo-settings-form-head"><span className="fpo-settings-icon">🏢</span><div><h2>FPO Profile</h2><p>Keep your organisation details current.</p></div></div><label>FPO name<input required value={fpoProfile.full_name} onChange={(event) => setFpoProfile((current) => ({ ...current, full_name: event.target.value }))} /></label><label>Email<input required type="email" value={fpoProfile.email} onChange={(event) => setFpoProfile((current) => ({ ...current, email: event.target.value }))} /></label><label>Phone<input value={fpoProfile.phone} onChange={(event) => setFpoProfile((current) => ({ ...current, phone: event.target.value }))} /></label><label>Address<input value={fpoProfile.address} onChange={(event) => setFpoProfile((current) => ({ ...current, address: event.target.value }))} /></label><label>Preferred language<select value={fpoProfile.language} onChange={(event) => setFpoProfile((current) => ({ ...current, language: event.target.value }))}><option value="">Select language</option><option>English</option><option>Telugu</option><option>Hindi</option></select></label><button type="submit" className="fpo-primary-action"><CheckCircle2 size={14} /> Save Profile</button></form><form className="fpo-settings-form" onSubmit={saveFpoPassword}><div className="fpo-settings-form-head"><span className="fpo-settings-icon">🔐</span><div><h2>Security</h2><p>Update your account password.</p></div></div><label>Current password<input required type="password" value={fpoPassword.current} onChange={(event) => setFpoPassword((current) => ({ ...current, current: event.target.value }))} /></label><label>New password<input required minLength="8" type="password" value={fpoPassword.next} onChange={(event) => setFpoPassword((current) => ({ ...current, next: event.target.value }))} /></label><button type="submit" className="fpo-primary-action"><ShieldCheck size={14} /> Update Password</button></form></div>
-                    </section> : isSettings ? <FpoSettingsPage /> : isLogistics ? <section className="fpo-members-page fpo-logistics-page">
+                    </section> : isSettings || isProfile ? <FpoSettingsPage /> : isLogistics ? <section className="fpo-members-page fpo-logistics-page">
                         <div className="fpo-section-heading"><div><span className="fpo-card-label">FPO operations</span><h1>Logistics &amp; Delivery</h1><p>Track every member-farmer shipment from pickup to delivery.</p></div><button type="button" className="fpo-primary-action" onClick={load}><RefreshCw size={14} /> Refresh Routes</button></div>
                         <div className="fpo-farmer-summary"><div><span>🚚 Total deliveries</span><strong>{fpoDeliveries.length}</strong></div><div><span>🟢 In progress</span><strong>{(deliveryCounts.IN_TRANSIT || 0) + (deliveryCounts.PICKED_UP || 0) + (deliveryCounts.OUT_FOR_DELIVERY || 0)}</strong></div><div><span>✅ Delivered</span><strong>{deliveryCounts.DELIVERED || 0}</strong></div></div>
                         <div className="fpo-delivery-board">{fpoDeliveries.map((delivery) => <article className="fpo-delivery-card" key={delivery.id}><div className="fpo-delivery-card-head"><span>🚚 Delivery #{delivery.id}</span><span className={`fpo-status-pill ${String(delivery.status).toLowerCase()}`}>{delivery.status.replace('_', ' ')}</span></div><div className="fpo-delivery-route"><strong>{delivery.pickup_location}</strong><ArrowRight size={14} /><strong>{delivery.destination}</strong></div><div className="fpo-delivery-meta"><span>📦 Order #{delivery.order_id}</span><span>{delivery.driver ? `👤 ${delivery.driver.full_name}` : 'Driver pending'}</span><span>{delivery.vehicle ? `🚛 ${delivery.vehicle.registration_number}` : 'Vehicle pending'}</span></div><div className="fpo-delivery-events">{delivery.events?.slice(-3).map((event) => <span key={event.id}>● {event.status.replace('_', ' ')}</span>)}</div></article>)}{!fpoDeliveries.length && <div className="fpo-farmer-empty">No deliveries are linked to your member farmers yet.</div>}</div>

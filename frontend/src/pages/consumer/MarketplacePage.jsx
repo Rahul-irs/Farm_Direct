@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, MapPin, PackageCheck, Search, ShoppingCart, SlidersHorizontal, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, MapPin, PackageCheck, Search, ShoppingCart, SlidersHorizontal, Star } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { addToCart, getProducts } from '../../services/api';
 import { getProductImage } from '../../utils/productImages';
@@ -71,25 +71,6 @@ export default function MarketplacePage() {
                             </Link>
                         </div>
                     </header>
-
-                    <div className="marketplace-banner">
-                        <div className="marketplace-banner-copy">
-                            <span className="marketplace-badge"><Sparkles size={12} /> Fresh network</span>
-                            <h2>Source produce with a clearer chain of custody.</h2>
-                            <p>Browse verified listings from partner farms, compare supply, and move from discovery to cart in one step.</p>
-                        </div>
-
-                        <div className="marketplace-banner-media" aria-label="Fresh farm produce">
-                            <img
-                                src="https://images.unsplash.com/photo-1464226184884-fa52ac9fcf8a?auto=format&fit=crop&w=800&q=80"
-                                alt="Fresh produce from partner farms"
-                            />
-                            <div className="marketplace-banner-chip">
-                                <span>Verified farms</span>
-                                <strong>312 active partners</strong>
-                            </div>
-                        </div>
-                    </div>
 
                     <div className="marketplace-toolbar" aria-label="Marketplace filters">
                         <label className="marketplace-search">

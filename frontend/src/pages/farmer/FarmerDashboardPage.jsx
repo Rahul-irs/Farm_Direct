@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CalendarDays, ChevronDown, ClipboardList, PackageCheck, Search, Tractor, WalletCards } from 'lucide-react';
+import { ArrowRight, Bell, ClipboardList, PackageCheck, Tractor, WalletCards } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFarmerInventoryOverview, getFarmerPaymentSummary, getOrders } from '../../services/api';
@@ -17,11 +17,8 @@ export default function FarmerDashboardPage() {
     const [metrics, setMetrics] = useState(emptyMetrics);
     const [summary, setSummary] = useState(emptySummary);
     const [orders, setOrders] = useState([]);
-    const [search, setSearch] = useState('');
     const [error, setError] = useState('');
     const name = user.full_name || 'Farmer';
-    const language = user.profile_data?.language || 'Not set';
-    const initials = name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
     const pendingPayments = orders.filter((order) => order.status === 'PENDING').reduce((total, order) => total + Number(order.total_amount || 0), 0);
 
     useEffect(() => {
@@ -33,11 +30,6 @@ export default function FarmerDashboardPage() {
             })
             .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Unable to load your farm overview'));
     }, []);
-
-    function submitSearch(event) {
-        event.preventDefault();
-        navigate(`/farmer/products${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ''}`);
-    }
 
     const orderRows = orders.slice(0, 3).map((order) => {
         const item = order.items?.[0];
@@ -60,22 +52,6 @@ export default function FarmerDashboardPage() {
     return (
         <main className="farmer-overview-page">
             <div className="farmer-overview-shell">
-                <div className="farmer-overview-header-row">
-                    <form className="farmer-overview-search" onSubmit={submitSearch}>
-                        <Search size={15} />
-                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products or crops..." aria-label="Search products or crops" />
-                    </form>
-                    <div className="farmer-overview-user-box">
-                        <button className="farmer-overview-bell" type="button" aria-label="Open notifications" onClick={() => navigate('/farmer/notifications')}><CalendarDays size={15} /></button>
-                        <div className="farmer-overview-user-avatar">{initials}</div>
-                        <div className="farmer-overview-user-meta">
-                            <strong>{name}</strong>
-                            <small>{language}</small>
-                        </div>
-                        <ChevronDown size={14} />
-                    </div>
-                </div>
-
                 <div className="farmer-overview-greeting-wrap">
                     <h1 className="farmer-overview-title">Good Morning, {name}!</h1>
                     <p className="farmer-overview-subtitle">Your hard work holds. We valued. Keep growing!</p>

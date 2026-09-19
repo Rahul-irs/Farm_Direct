@@ -16,7 +16,7 @@ export default function CartPage() {
 
     useEffect(() => {
         getCart()
-            .then((result) => setCart(result.cart))
+            .then((result) => setCart(result?.cart || { items: [] }))
             .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Unable to load cart'))
             .finally(() => setLoading(false));
     }, []);
@@ -30,7 +30,7 @@ export default function CartPage() {
         try {
             await removeCartItem(id);
             const result = await getCart();
-            setCart(result.cart);
+            setCart(result.cart || { items: [] });
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : 'Unable to remove item');
         }
@@ -80,7 +80,7 @@ export default function CartPage() {
 
                     {loading ? (
                         <div className="cart-loading" aria-label="Loading cart" />
-                    ) : cart?.items.length === 0 ? (
+                    ) : !cart?.items?.length ? (
                         <div className="cart-empty-state">
                             <Package size={34} />
                             <div>
