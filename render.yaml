@@ -29,7 +29,7 @@ services:
       - key: MAIL_DEFAULT_SENDER
         sync: false
 
-  - type: static
+  - type: staticSite
     name: farmdirect-web
     rootDir: frontend
     buildCommand: npm ci && npm run build
