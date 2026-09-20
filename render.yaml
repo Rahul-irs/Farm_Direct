@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: farmdirect-api
+    name: farmdirect-flask-api
     runtime: python
     plan: free
     rootDir: backend
@@ -35,7 +35,7 @@ services:
     staticPublishPath: build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://farmdirect-api.onrender.com/api
+        value: https://farmdirect-flask-api.onrender.com/api
     routes:
       - type: rewrite
         source: /*
