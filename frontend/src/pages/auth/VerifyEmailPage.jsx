@@ -5,8 +5,9 @@ import { resendVerification, verifyEmail } from '../../services/api';
 export default function VerifyEmailPage() {
     const navigate = useNavigate();
     const email = sessionStorage.getItem('verification_email') || '';
-    const [code, setCode] = useState('');
-    const [message, setMessage] = useState('');
+    const demoCode = sessionStorage.getItem('verification_debug_code') || '';
+    const [code, setCode] = useState(demoCode);
+    const [message, setMessage] = useState(demoCode ? `Demo mode: your verification code is ${demoCode}` : '');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 

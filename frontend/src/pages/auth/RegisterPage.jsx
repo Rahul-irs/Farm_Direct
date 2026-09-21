@@ -25,6 +25,11 @@ export default function RegisterPage() {
         try {
             const result = await register(form);
           sessionStorage.setItem('verification_email', result.email || form.email);
+          if (result.debug_code) {
+            sessionStorage.setItem('verification_debug_code', result.debug_code);
+          } else {
+            sessionStorage.removeItem('verification_debug_code');
+          }
           navigate('/verify-email');
         }
         catch (requestError) {

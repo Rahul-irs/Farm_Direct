@@ -60,19 +60,23 @@ def register():
     db.session.add(verification_token)
     db.session.commit()
     try:
-        send_otp_email(user.email, 'Verify your FarmDirect AI account', code, 'email verification')
+        email_sent = bool(send_otp_email(user.email, 'Verify your FarmDirect AI account', code, 'email verification'))
     except Exception:
         db.session.delete(verification_token)
         db.session.delete(user)
         db.session.commit()
         return jsonify({'success': False, 'message': 'Unable to send verification email'}), 503
 
-    return jsonify({
+    response = {
         'success': True,
-        'message': 'Registration successful. Check your email for the verification code.',
+        'message': 'Registration successful. Check your email for the verification code.' if email_sent else 'Registration successful. Use the verification code shown in this response for demo access.',
         'verification_required': True,
         'email': user.email,
-    }), 201
+    }
+    if not email_sent:
+        response['debug_code'] = code
+
+    return jsonify(response), 201
 
 
 @auth_bp.post('/login')
@@ -213,11 +217,13 @@ def forgot_password():
         db.session.add(token)
         db.session.commit()
         try:
-            send_otp_email(user.email, 'FarmDirect AI password reset code', code, 'password reset')
+            email_sent = bool(send_otp_email(user.email, 'FarmDirect AI password reset code', code, 'password reset'))
         except Exception:
             db.session.delete(token)
             db.session.commit()
             return jsonify({'success': False, 'message': 'Unable to send reset code'}), 503
+        if not email_sent:
+            return jsonify({'success': True, 'message': 'If an account matches, a reset code has been sent.', 'debug_code': code})
     return jsonify({'success': True, 'message': 'If an account matches, a reset code has been sent.'})
 
 

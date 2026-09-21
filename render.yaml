@@ -4,8 +4,8 @@ services:
     runtime: python
     plan: free
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all()" && gunicorn --bind 0.0.0.0:$PORT run:app
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python -c "from app import create_app, db; app = create_app(); app.app_context().push(); db.create_all(); print('database initialized')" && gunicorn --bind 0.0.0.0:$PORT run:app
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL

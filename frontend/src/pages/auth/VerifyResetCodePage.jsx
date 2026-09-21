@@ -4,8 +4,10 @@ import { verifyResetCode } from '../../services/api';
 export default function VerifyResetCodePage() {
     const navigate = useNavigate();
     const identifier = sessionStorage.getItem('reset_identifier') || '';
-    const [code, setCode] = useState('');
+    const demoCode = sessionStorage.getItem('reset_debug_code') || '';
+    const [code, setCode] = useState(demoCode);
     const [error, setError] = useState('');
+    const [message, setMessage] = useState(demoCode ? `Demo mode: your reset code is ${demoCode}` : '');
     async function submit(event) { event.preventDefault(); try {
         await verifyResetCode(identifier, code);
         sessionStorage.setItem('reset_code', code);
@@ -23,6 +25,7 @@ export default function VerifyResetCodePage() {
             <span className="mb-2 block text-sm text-emerald-100/80">Reset code</span>
             <input className="w-full rounded-xl border border-emerald-400/20 bg-slate-950/60 px-4 py-3" type="text" placeholder="123456" value={code} onChange={(event) => setCode(event.target.value)} required/>
           </label>
+          {message && <p className="text-sm text-emerald-300" role="status">{message}</p>}
           {error && <p className="text-sm text-rose-300">{error}</p>}<button className="btn-primary w-full" type="submit">Verify</button>
         </form>
       </div>
