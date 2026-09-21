@@ -8,6 +8,8 @@ def send_otp_email(recipient, subject, code, purpose):
     port = current_app.config['MAIL_PORT']
     username = current_app.config.get('MAIL_USERNAME')
     password = current_app.config.get('MAIL_PASSWORD')
+    if password:
+        password = ''.join(password.split())
     sender = current_app.config.get('MAIL_DEFAULT_SENDER') or username
     if not sender:
         raise RuntimeError('MAIL_DEFAULT_SENDER or MAIL_USERNAME must be configured')
@@ -21,7 +23,7 @@ def send_otp_email(recipient, subject, code, purpose):
         'If you did not request this code, you can safely ignore this email.'
     )
 
-    with smtplib.SMTP(server, port, timeout=15) as smtp:
+    with smtplib.SMTP(server, port, timeout=current_app.config['MAIL_TIMEOUT']) as smtp:
         if current_app.config['MAIL_USE_TLS']:
             smtp.starttls()
         if username and password:
