@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash
 from app.services import mail
 
 
-def test_registration_succeeds_without_smtp_credentials(monkeypatch):
+def test_registration_fails_without_smtp_credentials(monkeypatch):
     monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
     app = create_app()
     app.config.update(TESTING=True, MAIL_SERVER='smtp.example.com', MAIL_PORT=587, MAIL_USE_TLS=True)
@@ -20,8 +20,8 @@ def test_registration_succeeds_without_smtp_credentials(monkeypatch):
         'role': 'consumer',
     })
 
-    assert response.status_code == 201
-    assert response.get_json()['success'] is True
+    assert response.status_code == 503
+    assert response.get_json()['success'] is False
 
 
 def test_registration_supports_all_public_roles(monkeypatch):

@@ -67,16 +67,12 @@ def register():
         db.session.commit()
         return jsonify({'success': False, 'message': 'Unable to send verification email'}), 503
 
-    response = {
+    return jsonify({
         'success': True,
-        'message': 'Registration successful. Check your email for the verification code.' if email_sent else 'Registration successful. Use the verification code shown in this response for demo access.',
+        'message': 'Registration successful. Check your email for the verification code.',
         'verification_required': True,
         'email': user.email,
-    }
-    if not email_sent:
-        response['debug_code'] = code
-
-    return jsonify(response), 201
+    }), 201
 
 
 @auth_bp.post('/login')
@@ -222,8 +218,6 @@ def forgot_password():
             db.session.delete(token)
             db.session.commit()
             return jsonify({'success': False, 'message': 'Unable to send reset code'}), 503
-        if not email_sent:
-            return jsonify({'success': True, 'message': 'If an account matches, a reset code has been sent.', 'debug_code': code})
     return jsonify({'success': True, 'message': 'If an account matches, a reset code has been sent.'})
 
 

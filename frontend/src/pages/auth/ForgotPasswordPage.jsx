@@ -13,13 +13,8 @@ export default function ForgotPasswordPage() {
       setError('');
       setLoading(true);
         try {
-        const result = await requestPasswordReset(normalizedIdentifier);
+        await requestPasswordReset(normalizedIdentifier);
         sessionStorage.setItem('reset_identifier', normalizedIdentifier);
-        if (result.debug_code) {
-            sessionStorage.setItem('reset_debug_code', result.debug_code);
-        } else {
-            sessionStorage.removeItem('reset_debug_code');
-        }
             navigate('/verify-reset-code');
         }
         catch (requestError) {

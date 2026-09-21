@@ -13,11 +13,7 @@ def send_otp_email(recipient, subject, code, purpose):
     sender = current_app.config.get('MAIL_DEFAULT_SENDER') or username
 
     if not server or not port or not sender or not username or not password:
-        current_app.logger.warning(
-            'SMTP credentials are not configured; returning without sending the OTP email. '
-            'Use a valid MAIL_USERNAME and MAIL_PASSWORD in production.'
-        )
-        return False
+        raise RuntimeError('MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, and MAIL_DEFAULT_SENDER must be configured')
 
     message = EmailMessage()
     message['Subject'] = subject
@@ -36,6 +32,4 @@ def send_otp_email(recipient, subject, code, purpose):
                 smtp.login(username, password)
             smtp.send_message(message)
     except (smtplib.SMTPException, OSError, ValueError, RuntimeError) as exc:
-        current_app.logger.warning('OTP email delivery failed; continuing in demo mode: %s', exc)
-        return False
-    return True
+        raise RuntimeError(f'OTP email delivery failed: {exc}') from exc
