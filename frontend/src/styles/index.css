@@ -1,0 +1,17 @@
+/* Global CSS manifest. Keep route overrides in this order to preserve the cascade. */
+@import "./logistics.css";
+@import "./marketplace.css";
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+/* Tailwind base follows the original marketplace rules; utilities remain last. */
+@import "./tailwind-base.css";
+@import "./foundation.css";
+@import "./dashboard.css";
+@import "./facilitator.css";
+@import "./farmer.css";
+@import "./farmer-consumer.css";
+@import "./bulk-buyer.css";
+@import "./dashboard-shell.css";
+@import "./cart.css";
+@import "./partners-admin.css";
+@import "./commerce-history.css";
+@import "./tailwind-utilities.css";

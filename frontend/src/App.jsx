@@ -1,5 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
-import LandingPage from './pages/public/LandingPage';
+import IntroGate from './components/intro/IntroGate';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import SelectRolePage from './pages/auth/SelectRolePage';
@@ -54,7 +54,7 @@ import FpoSettingsPage from './pages/partners/FpoSettingsPage';
 import LogisticsProfilePage from './pages/logistics/LogisticsProfilePage';
 function App() {
     return (<Routes>
-      <Route path="/" element={<LandingPage />}/>
+      <Route path="/" element={<IntroGate />}/>
       <Route path="/about" element={<AboutPage />}/>
       <Route path="/how-it-works" element={<HowItWorksPage />}/>
       <Route path="/contact" element={<ContactPage />}/>

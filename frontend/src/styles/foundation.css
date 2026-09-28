@@ -1,0 +1,36 @@
+/* Shared design tokens, document typography, and global transition defaults. */
+:root {
+  --ink: #173b2b;
+  --muted: #527265;
+  --paper: #edf8ee;
+  --surface: rgba(250, 255, 249, 0.9);
+  --line: rgba(39, 111, 72, 0.18);
+  --forest: #28734a;
+  --coral: #4b9b63;
+  --gold: #9dcc73;
+  font-family: 'Space Grotesk', 'Trebuchet MS', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  font-family: 'Space Grotesk', 'Inter', 'Trebuchet MS', sans-serif;
+}
+
+body, button, input, select, textarea, a {
+  font-family: inherit;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+
+button, a, input, select, textarea {
+  transition: all 180ms ease;
+}

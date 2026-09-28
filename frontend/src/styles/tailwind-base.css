@@ -1,0 +1,4 @@
+/* Tailwind preflight and component layer, kept between catalog and tokens. */
+/* Tailwind preflight and component layer, kept between catalog and tokens. */
+@tailwind base;
+@tailwind components;
