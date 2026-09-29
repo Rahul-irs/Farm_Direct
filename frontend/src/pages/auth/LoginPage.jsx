@@ -19,8 +19,8 @@ function dashboardForRole(role) {
 }
 export default function LoginPage() {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('farmer@farmdirect.ai');
-    const [password, setPassword] = useState('demo12345');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);

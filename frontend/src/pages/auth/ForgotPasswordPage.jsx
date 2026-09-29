@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { requestPasswordReset } from '../../services/api';
 export default function ForgotPasswordPage() {
     const navigate = useNavigate();
@@ -35,6 +35,7 @@ export default function ForgotPasswordPage() {
           </label>
           {error && <p className="text-sm text-rose-300" role="alert">{error}</p>}<button className="btn-primary w-full" type="submit" disabled={loading}>{loading ? 'Sending reset code...' : 'Send reset code'}</button>
         </form>
+        <Link className="mt-4 block text-center text-sm text-emerald-100/80 underline-offset-4 hover:text-white hover:underline" to="/login">Back to login</Link>
       </div>
     </div>);
 }
