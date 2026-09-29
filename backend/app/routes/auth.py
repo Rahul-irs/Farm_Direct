@@ -126,6 +126,12 @@ def resend_verification():
         send_otp_email(user.email, 'Your FarmDirect AI verification code', code, 'email verification')
     return jsonify({'success': True, 'message': 'If the account needs verification, a new code has been sent.'})
 
+@auth_bp.post('/logout')
+@jwt_required()
+def logout():
+    return jsonify({'success': True, 'message': 'Logged out successfully'})
+
+
 @auth_bp.post('/refresh')
 @jwt_required(refresh=True)
 def refresh_access_token():

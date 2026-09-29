@@ -1,3 +1,4 @@
+import os
 import secrets
 from collections import defaultdict
 
@@ -14,6 +15,17 @@ from ..utils.auth import jwt_required_roles
 payments_bp = Blueprint('payments_bp', __name__)
 
 
+def _payment_provider_configured():
+    provider = (os.getenv('PAYMENT_PROVIDER') or '').strip().lower()
+    if not provider or provider in {'none', 'disabled', 'off'}:
+        return False
+    if provider == 'development':
+        return os.getenv('ALLOW_DEVELOPMENT_PAYMENTS', 'false').strip().lower() == 'true'
+    if provider in {'razorpay', 'stripe', 'paypal'}:
+        return bool(os.getenv('PAYMENT_PROVIDER_KEY') or os.getenv('PAYMENT_PROVIDER_SECRET'))
+    return False
+
+
 @payments_bp.post('/orders/<int:order_id>/pay')
 @jwt_required_roles('consumer', 'bulk_buyer')
 def pay_for_order(user, order_id):
@@ -22,11 +34,20 @@ def pay_for_order(user, order_id):
         return jsonify({'success': False, 'message': 'Order not found'}), 404
     if Payment.query.filter_by(order_id=order.id).first():
         return jsonify({'success': False, 'message': 'Order has already been paid'}), 409
-    payment = Payment(order_id=order.id, customer_id=user.id, amount=order.total_amount, transaction_reference=f'DEV-{secrets.token_hex(8)}')
-    order.status = 'PAID'
+    if not _payment_provider_configured():
+        return jsonify({
+            'success': False,
+            'message': 'Payment provider is not configured. Set PAYMENT_PROVIDER and provider credentials before processing payments.',
+            'requires_configuration': True,
+        }), 503
+
+    payment = Payment(order_id=order.id, customer_id=user.id, amount=order.total_amount, provider=os.getenv('PAYMENT_PROVIDER', 'development'), status='PENDING', transaction_reference=f'DEV-{secrets.token_hex(8)}')
+    order.status = 'PAYMENT_PENDING'
     db.session.add(payment)
+    db.session.flush()
+    payment.status = 'PROCESSING'
     db.session.commit()
-    return jsonify({'success': True, 'payment': payment.to_dict(), 'order': order.to_dict()}), 201
+    return jsonify({'success': True, 'payment': payment.to_dict(), 'order': order.to_dict(), 'message': 'Payment request accepted and is being processed.'}), 201
 
 
 @payments_bp.get('/')
@@ -40,12 +61,12 @@ def list_payments(user):
 @payments_bp.get('/farmer/summary')
 @jwt_required_roles('farmer')
 def farmer_payment_summary(user):
-    paid_orders = Order.query.join(OrderItem).join(Product).filter(Product.farmer_id == user.id, Order.status.in_(['PAID', 'CONFIRMED', 'LOGISTICS_REQUESTED', 'DELIVERED', 'COMPLETED'])).distinct().all()
+    paid_orders = Order.query.join(OrderItem).join(Product).filter(Product.farmer_id == user.id, Order.status.in_(['PAID', 'PAYMENT_PENDING', 'PAYMENT_CONFIRMED', 'CONFIRMED', 'LOGISTICS_REQUESTED', 'DELIVERED', 'COMPLETED'])).distinct().all()
     lines = [item for order in paid_orders for item in order.items if item.product.farmer_id == user.id]
     revenue = sum(item.quantity * item.unit_price for item in lines)
     sold_quantity = sum(item.quantity for item in lines)
     all_orders = Order.query.join(OrderItem).join(Product).filter(Product.farmer_id == user.id).distinct().all()
-    pending_amount = sum(order.total_amount for order in all_orders if order.status in {'PENDING', 'PAID'})
+    pending_amount = sum(order.total_amount for order in all_orders if order.status in {'PENDING', 'PAID', 'PAYMENT_PENDING', 'PAYMENT_CONFIRMED'})
     revenue_by_crop = defaultdict(float)
     monthly_revenue = defaultdict(float)
     for order in paid_orders:

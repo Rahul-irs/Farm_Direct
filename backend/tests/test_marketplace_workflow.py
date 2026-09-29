@@ -33,8 +33,72 @@ def test_checkout_uses_server_price_and_reduces_inventory(monkeypatch):
         assert db.session.get(Product, product_id).quantity == 7
 
 
+def test_payment_is_processing_after_dev_payment_request(monkeypatch):
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    monkeypatch.setenv('PAYMENT_PROVIDER', 'development')
+    monkeypatch.setenv('ALLOW_DEVELOPMENT_PAYMENTS', 'true')
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    with app.app_context():
+        db.create_all()
+        farmer = User(full_name='Farmer', email='farmer-payment@test.com', password_hash=generate_password_hash('password123'), role='farmer', is_verified=True)
+        buyer = User(full_name='Buyer', email='buyer-payment@test.com', password_hash=generate_password_hash('password123'), role='consumer', is_verified=True)
+        db.session.add_all([farmer, buyer])
+        db.session.commit()
+        product = Product(name='Onion', category='Vegetable', crop='Onion', quantity=20, unit='kg', price=15, quality='A', location='Nagpur', farmer_id=farmer.id)
+        db.session.add(product)
+        db.session.commit()
+        product_id = product.id
+
+    buyer_token = client.post('/api/auth/login', json={'email': 'buyer-payment@test.com', 'password': 'password123'}).get_json()['token']
+    buyer_headers = {'Authorization': f'Bearer {buyer_token}'}
+    client.post('/api/orders/cart/items', json={'product_id': product_id, 'quantity': 2}, headers=buyer_headers)
+    order = client.post('/api/orders/', headers=buyer_headers).get_json()['order']
+
+    response = client.post(f"/api/payments/orders/{order['id']}/pay", headers=buyer_headers)
+
+    assert response.status_code == 201
+    payload = response.get_json()
+    assert payload['order']['status'] == 'PAYMENT_PENDING'
+    assert payload['payment']['status'] == 'PROCESSING'
+
+
+def test_payment_requires_provider_configuration(monkeypatch):
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    monkeypatch.delenv('PAYMENT_PROVIDER', raising=False)
+    monkeypatch.delenv('ALLOW_DEVELOPMENT_PAYMENTS', raising=False)
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    with app.app_context():
+        db.create_all()
+        farmer = User(full_name='Farmer', email='farmer-config@test.com', password_hash=generate_password_hash('password123'), role='farmer', is_verified=True)
+        buyer = User(full_name='Buyer', email='buyer-config@test.com', password_hash=generate_password_hash('password123'), role='consumer', is_verified=True)
+        db.session.add_all([farmer, buyer])
+        db.session.commit()
+        product = Product(name='Peas', category='Vegetable', crop='Peas', quantity=20, unit='kg', price=18, quality='A', location='Indore', farmer_id=farmer.id)
+        db.session.add(product)
+        db.session.commit()
+        product_id = product.id
+
+    buyer_token = client.post('/api/auth/login', json={'email': 'buyer-config@test.com', 'password': 'password123'}).get_json()['token']
+    buyer_headers = {'Authorization': f'Bearer {buyer_token}'}
+    client.post('/api/orders/cart/items', json={'product_id': product_id, 'quantity': 2}, headers=buyer_headers)
+    order = client.post('/api/orders/', headers=buyer_headers).get_json()['order']
+
+    response = client.post(f"/api/payments/orders/{order['id']}/pay", headers=buyer_headers)
+
+    assert response.status_code == 503
+    assert response.get_json()['requires_configuration'] is True
+
+
 def test_farmer_cannot_delete_paid_order(monkeypatch):
     monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    monkeypatch.setenv('PAYMENT_PROVIDER', 'development')
+    monkeypatch.setenv('ALLOW_DEVELOPMENT_PAYMENTS', 'true')
     app = create_app()
     app.config.update(TESTING=True)
     client = app.test_client()
@@ -78,6 +142,66 @@ def test_login_accepts_copied_demo_email_with_whitespace(monkeypatch):
 
     assert response.status_code == 200
     assert response.get_json()['user']['email'] == 'buyer@farmdirect.ai'
+
+
+def test_bulk_requirement_reports_shortage_when_total_supply_is_insufficient(monkeypatch):
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    with app.app_context():
+        db.create_all()
+        buyer = User(full_name='Bulk Buyer', email='bulk-shortage@test.com', password_hash=generate_password_hash('password123'), role='bulk_buyer', is_verified=True)
+        farmer = User(full_name='Farmer', email='bulk-farmer@test.com', password_hash=generate_password_hash('password123'), role='farmer', is_verified=True)
+        db.session.add_all([buyer, farmer])
+        db.session.commit()
+        db.session.add(Product(name='Tomato', category='Vegetable', crop='Tomato', quantity=650, unit='kg', price=24, quality='Grade A', location='Guntur', farmer_id=farmer.id))
+        db.session.commit()
+
+    token = client.post('/api/auth/login', json={'email': 'bulk-shortage@test.com', 'password': 'password123'}).get_json()['token']
+    response = client.post('/api/partners/bulk/requirements', json={'crop': 'Tomato', 'location': 'Guntur', 'quantity': 1000}, headers={'Authorization': f'Bearer {token}'})
+    requirement_id = response.get_json()['requirement']['id']
+    matches = client.get(f'/api/partners/bulk/requirements/{requirement_id}/matches', headers={'Authorization': f'Bearer {token}'})
+
+    assert matches.status_code == 200
+    payload = matches.get_json()
+    assert payload['total_available'] == 650
+    assert payload['shortage'] == 350
+    assert payload['matched_quantity'] == 650
+    assert payload['is_fully_matched'] is False
+
+
+def test_logout_route_and_order_cancellation_restore_inventory(monkeypatch):
+    monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    app = create_app()
+    app.config.update(TESTING=True)
+    client = app.test_client()
+
+    with app.app_context():
+        db.create_all()
+        farmer = User(full_name='Farmer', email='farmer-cancel@test.com', password_hash=generate_password_hash('password123'), role='farmer', is_verified=True)
+        buyer = User(full_name='Buyer', email='buyer-cancel@test.com', password_hash=generate_password_hash('password123'), role='consumer', is_verified=True)
+        db.session.add_all([farmer, buyer])
+        db.session.commit()
+        product = Product(name='Capsicum', category='Vegetable', crop='Capsicum', quantity=12, unit='kg', price=22, quality='A', location='Bhopal', farmer_id=farmer.id)
+        db.session.add(product)
+        db.session.commit()
+        product_id = product.id
+
+    buyer_token = client.post('/api/auth/login', json={'email': 'buyer-cancel@test.com', 'password': 'password123'}).get_json()['token']
+    buyer_headers = {'Authorization': f'Bearer {buyer_token}'}
+    assert client.post('/api/orders/cart/items', json={'product_id': product_id, 'quantity': 3}, headers=buyer_headers).status_code == 201
+    order = client.post('/api/orders/', headers=buyer_headers).get_json()['order']
+
+    farmer_token = client.post('/api/auth/login', json={'email': 'farmer-cancel@test.com', 'password': 'password123'}).get_json()['token']
+    logout_response = client.post('/api/auth/logout', headers={'Authorization': f'Bearer {farmer_token}'})
+    assert logout_response.status_code == 200
+
+    delete_response = client.delete(f"/api/orders/{order['id']}", headers={'Authorization': f'Bearer {farmer_token}'})
+    assert delete_response.status_code == 200
+    with app.app_context():
+        assert db.session.get(Product, product_id).quantity == 12
 
 
 def test_profile_updates_persist_after_logout_and_relogin(monkeypatch):

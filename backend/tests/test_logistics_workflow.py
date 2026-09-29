@@ -34,6 +34,8 @@ def test_provider_can_accept_delivery(monkeypatch):
 
 def test_paid_order_can_move_from_farmer_to_logistics(monkeypatch):
     monkeypatch.setenv('DATABASE_URL', 'sqlite:///:memory:')
+    monkeypatch.setenv('PAYMENT_PROVIDER', 'development')
+    monkeypatch.setenv('ALLOW_DEVELOPMENT_PAYMENTS', 'true')
     app = create_app()
     app.config.update(TESTING=True)
     with app.app_context():
@@ -55,7 +57,7 @@ def test_paid_order_can_move_from_farmer_to_logistics(monkeypatch):
     assert client.post(f"/api/payments/orders/{order['id']}/pay", headers=buyer_headers).status_code == 201
 
     with app.app_context():
-        assert db.session.get(Order, order['id']).status == 'PAID'
+        assert db.session.get(Order, order['id']).status == 'PAYMENT_PENDING'
 
     farmer_token = client.post('/api/auth/login', json={'email': 'farmer-handoff@test.com', 'password': 'password123'}).get_json()['token']
     farmer_headers = {'Authorization': f'Bearer {farmer_token}'}

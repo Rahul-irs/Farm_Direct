@@ -15,6 +15,41 @@ from ..utils.auth import jwt_required_roles
 partners_bp = Blueprint('partners_bp', __name__)
 
 
+def _bulk_requirement_match_summary(requirement):
+    candidates = Product.query.filter(
+        Product.crop.ilike(requirement.crop),
+        Product.is_active.is_(True),
+        Product.quantity > 0,
+    ).order_by(Product.price.asc(), Product.id.asc()).all()
+
+    total_available = round(sum(float(product.quantity) for product in candidates), 2)
+    remaining = float(requirement.quantity)
+    matches = []
+
+    for product in candidates:
+        if remaining <= 0:
+            break
+        allocatable = min(float(product.quantity), remaining)
+        if allocatable <= 0:
+            continue
+        matches.append({
+            **product.to_dict(),
+            'allocatable_quantity': round(allocatable, 2),
+            'available_quantity': round(float(product.quantity), 2),
+        })
+        remaining -= allocatable
+
+    matched_quantity = round(min(total_available, float(requirement.quantity)), 2)
+    shortage = round(max(float(requirement.quantity) - total_available, 0.0), 2)
+    return {
+        'total_available': total_available,
+        'matched_quantity': matched_quantity,
+        'shortage': shortage,
+        'is_fully_matched': total_available >= float(requirement.quantity),
+        'matches': matches,
+    }
+
+
 @partners_bp.get('/fpo/logistics')
 @jwt_required_roles('fpo')
 def fpo_logistics(user):
@@ -357,11 +392,15 @@ def fpo_bulk_buyers(user):
     buyers = {buyer.id: buyer for buyer in User.query.filter(User.id.in_(buyer_ids)).all()} if buyer_ids else {}
     items = []
     for record in records:
-        match = Product.query.filter(Product.crop.ilike(record.crop), Product.quantity >= record.quantity).order_by(Product.price.asc()).first()
+        summary = _bulk_requirement_match_summary(record)
         items.append({
             **record.to_dict(),
             'buyer_name': buyers.get(record.buyer_id).full_name if buyers.get(record.buyer_id) else f'Buyer #{record.buyer_id}',
-            'estimated_value': round(record.quantity * match.price, 2) if match else None,
+            'estimated_value': round(record.quantity * (summary['matches'][0]['price'] if summary['matches'] else 0), 2),
+            'total_available': summary['total_available'],
+            'matched_quantity': summary['matched_quantity'],
+            'shortage': summary['shortage'],
+            'is_fully_matched': summary['is_fully_matched'],
         })
     return jsonify({'success': True, 'items': items})
 
@@ -415,5 +454,13 @@ def requirement_matches(user, requirement_id):
     requirement = BulkRequirement.query.filter_by(id=requirement_id, buyer_id=user.id).first()
     if not requirement:
         return jsonify({'success': False, 'message': 'Requirement not found'}), 404
-    matches = Product.query.filter(Product.crop.ilike(requirement.crop), Product.quantity >= requirement.quantity).order_by(Product.price.asc()).all()
-    return jsonify({'success': True, 'matches': [match.to_dict() for match in matches]})
+    summary = _bulk_requirement_match_summary(requirement)
+    return jsonify({
+        'success': True,
+        'requirement': requirement.to_dict(),
+        'matches': summary['matches'],
+        'total_available': summary['total_available'],
+        'matched_quantity': summary['matched_quantity'],
+        'shortage': summary['shortage'],
+        'is_fully_matched': summary['is_fully_matched'],
+    })

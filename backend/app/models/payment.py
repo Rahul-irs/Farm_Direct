@@ -9,7 +9,7 @@ class Payment(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     provider = db.Column(db.String(40), default='development')
-    status = db.Column(db.String(40), default='SUCCEEDED')
+    status = db.Column(db.String(40), default='PENDING')
     transaction_reference = db.Column(db.String(120), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 

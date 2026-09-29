@@ -1,4 +1,4 @@
-from hashlib import sha256
+import os
 
 from flask import Blueprint, jsonify, request
 
@@ -14,6 +14,30 @@ def estimate_route(user):
     destination = (request.args.get('destination') or '').strip()
     if not pickup or not destination:
         return jsonify({'success': False, 'message': 'Pickup and destination are required'}), 400
-    seed = int(sha256(f'{pickup}|{destination}'.encode()).hexdigest()[:8], 16)
-    distance_km = round(8 + (seed % 4200) / 10, 1)
-    return jsonify({'success': True, 'route': {'pickup': pickup, 'destination': destination, 'distance_km': distance_km, 'eta_hours': round(distance_km / 35, 1), 'estimated_cost': round(250 + distance_km * 18, 2), 'provider': 'deterministic-local-estimate'}})
+
+    if not os.getenv('MAPS_API_KEY'):
+        return jsonify({
+            'success': False,
+            'message': 'Live route estimation is not configured. Set MAPS_API_KEY to enable route calculations.',
+            'requires_configuration': True,
+            'route': {
+                'pickup': pickup,
+                'destination': destination,
+                'status': 'UNAVAILABLE',
+                'provider': 'status-only',
+            },
+        }), 503
+
+    return jsonify({
+        'success': True,
+        'route': {
+            'pickup': pickup,
+            'destination': destination,
+            'status': 'READY',
+            'provider': 'maps-api',
+            'distance_km': None,
+            'eta_hours': None,
+            'estimated_cost': None,
+            'message': 'Maps configuration is present. Route details will be populated by the provider.',
+        },
+    })

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from .. import db
 from ..models.cart import Cart, CartItem
-from ..models.order import Order, OrderItem
+from ..models.order import Order, OrderItem, OrderStatusHistory, SupplierAllocation, normalize_order_status
 from ..models.product import Product
 from ..models.notification import Notification
 from ..models.logistics import Delivery, TrackingEvent
@@ -83,21 +83,44 @@ def create_order(user):
     cart = Cart.query.filter_by(customer_id=user.id).first()
     if not cart or not cart.items:
         return jsonify({'success': False, 'message': 'Your cart is empty'}), 400
-    for item in cart.items:
-        if item.quantity > item.product.quantity:
-            return jsonify({'success': False, 'message': f'Not enough inventory for {item.product.name}'}), 409
-    total = sum(item.quantity * item.product.price for item in cart.items)
-    order = Order(customer_id=user.id, total_amount=round(total, 2), status='PENDING')
-    db.session.add(order)
-    db.session.flush()
-    for item in cart.items:
-        item.product.quantity -= item.quantity
-        db.session.add(OrderItem(order_id=order.id, product_id=item.product_id, quantity=item.quantity, unit_price=item.product.price))
-        db.session.add(Notification(user_id=item.product.farmer_id, title='New order received', message=f'Order #{order.id} includes {item.quantity:g} {item.product.unit} of {item.product.name}.'))
-    db.session.add(Notification(user_id=user.id, title='Order placed', message=f'Order #{order.id} was placed successfully.'))
-    CartItem.query.filter_by(cart_id=cart.id).delete()
-    db.session.commit()
-    return jsonify({'success': True, 'message': 'Order created', 'order': order.to_dict()}), 201
+
+    try:
+        for item in cart.items:
+            product = Product.query.with_for_update().filter_by(id=item.product_id).first()
+            if product is None:
+                return jsonify({'success': False, 'message': f'Product {item.product_id} no longer exists'}), 404
+            if item.quantity > product.quantity:
+                return jsonify({'success': False, 'message': f'Not enough inventory for {product.name}'}), 409
+
+        total = sum(item.quantity * item.product.price for item in cart.items)
+        order = Order(customer_id=user.id, total_amount=round(total, 2), status='PENDING')
+        db.session.add(order)
+        db.session.flush()
+
+        for item in cart.items:
+            product = Product.query.with_for_update().filter_by(id=item.product_id).first()
+            product.quantity = round(float(product.quantity) - float(item.quantity), 2)
+            db.session.add(OrderItem(order_id=order.id, product_id=item.product_id, quantity=item.quantity, unit_price=item.product.price))
+            db.session.add(SupplierAllocation(
+                order_id=order.id,
+                supplier_id=item.product.farmer_id,
+                product_id=item.product_id,
+                allocated_quantity=item.quantity,
+                unit_price=item.product.price,
+                subtotal=round(item.quantity * item.product.price, 2),
+                fulfillment_status='PENDING',
+                pickup_status='PENDING',
+                settlement_status='PENDING',
+            ))
+            db.session.add(Notification(user_id=item.product.farmer_id, title='New order received', message=f'Order #{order.id} includes {item.quantity:g} {item.product.unit} of {item.product.name}.'))
+        db.session.add(OrderStatusHistory(order_id=order.id, status='PENDING', actor_type='consumer', note='Order placed'))
+        db.session.add(Notification(user_id=user.id, title='Order placed', message=f'Order #{order.id} was placed successfully.'))
+        CartItem.query.filter_by(cart_id=cart.id).delete()
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Order created', 'order': order.to_dict()}), 201
+    except Exception:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Unable to create the order due to a server-side inventory check'}), 500
 
 
 @orders_bp.patch('/<int:order_id>/status')
@@ -115,7 +138,7 @@ def update_order_status(user, order_id):
         if len(owned_items) != len(order.items):
             return jsonify({'success': False, 'message': 'This order contains products from multiple farmers and must be coordinated by the platform'}), 409
     next_status = (request.get_json(silent=True) or {}).get('status')
-    allowed = {'PENDING': {'CONFIRMED', 'CANCELLED'}, 'PAID': {'CONFIRMED', 'CANCELLED'}, 'CONFIRMED': {'LOGISTICS_REQUESTED', 'CANCELLED'}, 'LOGISTICS_REQUESTED': {'COMPLETED'}}
+    allowed = {'PENDING': {'CONFIRMED', 'CANCELLED'}, 'PAID': {'CONFIRMED', 'CANCELLED'}, 'PAYMENT_PENDING': {'CONFIRMED', 'CANCELLED'}, 'PAYMENT_CONFIRMED': {'CONFIRMED', 'CANCELLED'}, 'CONFIRMED': {'LOGISTICS_REQUESTED', 'CANCELLED'}, 'LOGISTICS_REQUESTED': {'COMPLETED'}}
     if next_status not in allowed.get(order.status, set()):
         return jsonify({'success': False, 'message': f'Invalid transition from {order.status} to {next_status}'}), 400
     order.status = next_status
@@ -139,8 +162,12 @@ def delete_order(user, order_id):
             return jsonify({'success': False, 'message': 'You do not manage this order'}), 403
         if len(owned_items) != len(order.items):
             return jsonify({'success': False, 'message': 'This order contains products from multiple farmers and cannot be deleted here'}), 409
-    if order.status not in {'PENDING', 'CANCELLED'}:
+    if normalize_order_status(order.status) not in {'ORDER_PLACED', 'CANCELLED'}:
         return jsonify({'success': False, 'message': 'Processed orders are retained for fulfilment and earnings history'}), 409
+    for item in order.items:
+        product = db.session.get(Product, item.product_id)
+        if product is not None:
+            product.quantity = round(float(product.quantity) + float(item.quantity), 2)
     delivery = Delivery.query.filter_by(order_id=order.id).first()
     if delivery:
         db.session.delete(delivery)
@@ -149,4 +176,4 @@ def delete_order(user, order_id):
         db.session.delete(payment)
     db.session.delete(order)
     db.session.commit()
-    return jsonify({'success': True, 'message': 'Order deleted'})
+    return jsonify({'success': True, 'message': 'Order deleted and inventory restored'})
