@@ -28,7 +28,7 @@ FarmDirect AI is an agricultural marketplace and fulfillment platform connecting
 
 ## Features
 
-- Role-based authentication and protected API access for consumers, farmers, FPOs, bulk buyers, field assistants, logistics providers, and admins
+- Role-based authentication and protected API access for consumers, farmers, FPOs, bulk buyers, field assistants, and logistics providers
 - Product catalogue management with search, filtering, and farmer-owned inventory tracking
 - Cart and checkout logic that validates stock before order creation and calculates totals on the server
 - Order creation with multiple supplier allocations represented as order items and traceable allocation records
@@ -37,7 +37,6 @@ FarmDirect AI is an agricultural marketplace and fulfillment platform connecting
 - Logistics delivery assignment, status progression, and tracking records
 - Notifications for order updates, fulfillment, and system events
 - Payment records that use a development-safe payment flow without claiming live card processing
-- Admin overview, audit, and role-aware reporting endpoints
 - AI demand/price forecast endpoints that use historical product data when present and explicit fallback logic when data is insufficient
 
 ## Technologies Used
@@ -114,10 +113,6 @@ The current implementation is a working vertical slice of the farm-to-consumer w
 - Accepts deliveries and manages vehicles and drivers
 - Updates delivery status through the fulfillment lifecycle
 - Tracks pickup and delivery records for assigned orders
-
-### Admin
-- Reviews system health, users, orders, and summary metrics
-- Can access overview endpoints and platform-level data
 
 ## Complete Workflow
 
