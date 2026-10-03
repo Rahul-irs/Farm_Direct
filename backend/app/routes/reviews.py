@@ -26,7 +26,11 @@ def create_review(user):
         return jsonify({'success': False, 'message': 'Product, order and rating are required'}), 400
     if rating < 1 or rating > 5:
         return jsonify({'success': False, 'message': 'Rating must be between 1 and 5'}), 400
-    order = Order.query.filter_by(id=order_id, customer_id=user.id, status='COMPLETED').first()
+    order = Order.query.filter(
+        Order.id == order_id,
+        Order.customer_id == user.id,
+        Order.status.in_({'COMPLETED', 'DELIVERED'}),
+    ).first()
     if order is None or not any(item.product_id == product_id for item in order.items):
         return jsonify({'success': False, 'message': 'Only completed purchases can be reviewed'}), 403
     if Review.query.filter_by(product_id=product_id, customer_id=user.id, order_id=order_id).first():

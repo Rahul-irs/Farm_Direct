@@ -45,7 +45,7 @@
 
 - Test user-visible workflows, not just helper functions.
 - Prefer real behavior tests over mock-heavy assertions.
-- Cover login, product purchase, logistics transitions, and admin oversight flows.
+- Cover login, product purchase, logistics transitions, and authorization boundaries across supported roles.
 - Add regression tests when fixing bugs or changing business rules.
 
 ## 6. Security Rules

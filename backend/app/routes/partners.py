@@ -2,6 +2,7 @@ from collections import defaultdict
 import secrets
 
 from flask import Blueprint, jsonify, request
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
 from .. import db
@@ -15,12 +16,15 @@ from ..utils.auth import jwt_required_roles
 partners_bp = Blueprint('partners_bp', __name__)
 
 
-def _bulk_requirement_match_summary(requirement):
-    candidates = Product.query.filter(
+def _bulk_requirement_match_summary(requirement, farmer_ids=None):
+    query = Product.query.filter(
         Product.crop.ilike(requirement.crop),
         Product.is_active.is_(True),
         Product.quantity > 0,
-    ).order_by(Product.price.asc(), Product.id.asc()).all()
+    )
+    if farmer_ids is not None:
+        query = query.filter(Product.farmer_id.in_(farmer_ids))
+    candidates = query.order_by(Product.price.asc(), Product.id.asc()).all()
 
     total_available = round(sum(float(product.quantity) for product in candidates), 2)
     remaining = float(requirement.quantity)
@@ -48,6 +52,23 @@ def _bulk_requirement_match_summary(requirement):
         'is_fully_matched': total_available >= float(requirement.quantity),
         'matches': matches,
     }
+
+
+def _fpo_member_supply(user):
+    farmer_ids = {
+        membership.farmer_id
+        for membership in FPOMembership.query.filter_by(fpo_id=user.id, status='ACTIVE').all()
+    }
+    crops = set()
+    if farmer_ids:
+        crops = {
+            crop.lower()
+            for (crop,) in db.session.query(Product.crop).filter(
+                Product.farmer_id.in_(farmer_ids),
+            ).distinct().all()
+            if crop
+        }
+    return farmer_ids, crops
 
 
 @partners_bp.get('/fpo/logistics')
@@ -387,12 +408,15 @@ def list_requirements(user):
 @partners_bp.get('/fpo/bulk-buyers')
 @jwt_required_roles('fpo')
 def fpo_bulk_buyers(user):
-    records = BulkRequirement.query.order_by(BulkRequirement.id.desc()).all()
+    farmer_ids, crops = _fpo_member_supply(user)
+    records = BulkRequirement.query.filter(
+        func.lower(BulkRequirement.crop).in_(crops)
+    ).order_by(BulkRequirement.id.desc()).all() if crops else []
     buyer_ids = {record.buyer_id for record in records}
     buyers = {buyer.id: buyer for buyer in User.query.filter(User.id.in_(buyer_ids)).all()} if buyer_ids else {}
     items = []
     for record in records:
-        summary = _bulk_requirement_match_summary(record)
+        summary = _bulk_requirement_match_summary(record, farmer_ids)
         items.append({
             **record.to_dict(),
             'buyer_name': buyers.get(record.buyer_id).full_name if buyers.get(record.buyer_id) else f'Buyer #{record.buyer_id}',
@@ -409,7 +433,8 @@ def fpo_bulk_buyers(user):
 @jwt_required_roles('fpo')
 def update_fpo_bulk_buyer(user, requirement_id):
     record = db.session.get(BulkRequirement, requirement_id)
-    if not record:
+    farmer_ids, crops = _fpo_member_supply(user)
+    if not record or record.crop.lower() not in crops:
         return jsonify({'success': False, 'message': 'Bulk request not found'}), 404
     status = str((request.get_json(silent=True) or {}).get('status', '')).upper()
     if status not in {'OPEN', 'ACCEPTED', 'COMPLETED', 'IN_TRANSIT', 'DELIVERED'}:

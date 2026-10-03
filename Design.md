@@ -2,21 +2,21 @@
 
 ## 1. Design Philosophy
 
-FarmDirect AI is designed to feel trustworthy, operational, and persuasive for agricultural commerce. The product balances practical business functionality with a clean modern interface that supports diverse workflows across farming, logistics, and administration.
+FarmDirect AI is designed to feel trustworthy, operational, and persuasive for agricultural commerce. The product balances practical business functionality with a clean modern interface that supports diverse workflows across farming, logistics, and supply-chain operations.
 
 The design system emphasizes:
 
 - clarity in critical journeys such as checkout and order tracking
 - role-aware experience design
 - direct information hierarchy for operational decisions
-- strong visual distinction between buyer, farmer, and admin responsibilities
+- clear separation between buyer, farmer, FPO, facilitator, and logistics workflows
 
 ## 2. User Experience Goals
 
 ### Trust
 - Show product and order details explicitly
 - Provide clear status transitions during fulfillment
-- Present auditability and governance cues in admin workflows
+- Preserve an auditable history of important platform events
 
 ### Efficiency
 - Reduce clicks in common actions like product browse and checkout
@@ -55,11 +55,6 @@ The current frontend includes a Tailwind-based system with modular UI styling an
 - vehicle and driver tracking tasks
 - delivery status workflows with route-related views
 
-### Admin Experience
-- high-level overview dashboard
-- audit and platform health views
-- user management and operational governance surfaces
-
 ## 5. Interaction Patterns
 
 - Use dashboards for overview and actions
@@ -77,7 +72,7 @@ The current frontend includes a Tailwind-based system with modular UI styling an
 ### Priority 2
 - Farmer fulfillment management
 - Logistics assignment and tracking
-- Admin oversight and audits
+- Cross-role authorization and auditability
 
 ### Priority 3
 - AI-guided forecasting and supplier recommendations
@@ -105,7 +100,7 @@ The project uses a modern, polished dashboard aesthetic with strong screen separ
 
 Future design iterations should focus on:
 
-- stronger analytics and data storytelling for admins and farmers
+- stronger analytics and data storytelling for farmers and FPOs
 - better mobile-first flows for field and logistics users
 - improved visual semantics for supply chain statuses
 - more precise notification and communication design across order events

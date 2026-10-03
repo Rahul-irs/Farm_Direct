@@ -1,8 +1,10 @@
+import math
+
 from flask import Blueprint, jsonify, request
 from sqlalchemy import func
 
 from .. import db
-from ..models.order import OrderItem
+from ..models.order import Order, OrderItem
 from ..models.product import Product
 from ..utils.auth import jwt_required_roles
 
@@ -15,7 +17,10 @@ def farmer_insights(user):
     products = Product.query.filter_by(farmer_id=user.id).all()
     insights = []
     for product in products:
-        sold = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).filter(OrderItem.product_id == product.id).scalar() or 0
+        sold = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Order).filter(
+            OrderItem.product_id == product.id,
+            func.upper(Order.status) != 'CANCELLED',
+        ).scalar() or 0
         if product.quantity <= 0:
             recommendation = 'Restock this listing before the next buyer request.'
         elif sold:
@@ -30,7 +35,7 @@ def farmer_insights(user):
 def price_prediction():
     crop = (request.args.get('crop') or '').strip()
     location = (request.args.get('location') or '').strip()
-    query = Product.query
+    query = Product.query.filter(Product.is_active.is_(True))
     if crop:
         query = query.filter(Product.crop.ilike(crop))
     if location:
@@ -39,7 +44,10 @@ def price_prediction():
     if not products:
         return jsonify({'success': True, 'prediction': None, 'message': 'Insufficient historical data for a reliable prediction.'})
     average_price = sum(product.price for product in products) / len(products)
-    sold_quantity = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Product, Product.id == OrderItem.product_id).filter(Product.id.in_([product.id for product in products])).scalar()
+    sold_quantity = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Product, Product.id == OrderItem.product_id).join(Order).filter(
+        Product.id.in_([product.id for product in products]),
+        func.upper(Order.status) != 'CANCELLED',
+    ).scalar()
     confidence = min(0.95, 0.5 + (0.08 * len(products)) + (0.02 if sold_quantity else 0))
     selected_crop = crop or products[0].crop
     return jsonify({
@@ -55,7 +63,7 @@ def price_prediction():
 
 @ai_bp.get('/price-predictions')
 def price_predictions():
-    products = Product.query.order_by(Product.crop.asc(), Product.id.asc()).all()
+    products = Product.query.filter(Product.is_active.is_(True)).order_by(Product.crop.asc(), Product.id.asc()).all()
     crops = {}
     for product in products:
         crop_name = product.crop.strip() or product.name.strip()
@@ -63,7 +71,10 @@ def price_predictions():
     predictions = []
     for crop_name, crop_products in crops.items():
         product_ids = [product.id for product in crop_products]
-        sold_quantity = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Product, Product.id == OrderItem.product_id).filter(Product.id.in_(product_ids)).scalar()
+        sold_quantity = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Product, Product.id == OrderItem.product_id).join(Order).filter(
+            Product.id.in_(product_ids),
+            func.upper(Order.status) != 'CANCELLED',
+        ).scalar()
         confidence = min(0.95, 0.5 + (0.08 * len(crop_products)) + (0.02 if sold_quantity else 0))
         average_price = sum(product.price for product in crop_products) / len(crop_products)
         predictions.append({
@@ -80,9 +91,12 @@ def price_predictions():
 @ai_bp.get('/demand-forecast')
 def demand_forecast():
     crop = (request.args.get('crop') or '').strip()
-    query = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0), func.count(OrderItem.id)).join(Product, Product.id == OrderItem.product_id)
+    location = (request.args.get('location') or '').strip()
+    query = db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0), func.count(OrderItem.id)).join(Product, Product.id == OrderItem.product_id).join(Order).filter(func.upper(Order.status) != 'CANCELLED')
     if crop:
         query = query.filter(Product.crop.ilike(crop))
+    if location:
+        query = query.filter(Product.location.ilike(location))
     sold_quantity, order_lines = query.one()
     if not order_lines:
         return jsonify({'success': True, 'forecast': None, 'message': 'Insufficient historical order data for a reliable forecast.'})
@@ -93,8 +107,13 @@ def demand_forecast():
 @ai_bp.get('/supplier-matches')
 def supplier_matches():
     crop = (request.args.get('crop') or '').strip()
-    minimum_quantity = float(request.args.get('quantity', 0) or 0)
-    query = Product.query.filter(Product.quantity >= minimum_quantity)
+    try:
+        minimum_quantity = float(request.args.get('quantity') or 0)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'message': 'Quantity must be a non-negative number'}), 400
+    if not math.isfinite(minimum_quantity) or minimum_quantity < 0:
+        return jsonify({'success': False, 'message': 'Quantity must be a non-negative number'}), 400
+    query = Product.query.filter(Product.is_active.is_(True), Product.quantity > 0, Product.quantity >= minimum_quantity)
     if crop:
         query = query.filter(Product.crop.ilike(crop))
     products = query.order_by(Product.price.asc()).limit(20).all()

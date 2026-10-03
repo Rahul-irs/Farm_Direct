@@ -17,7 +17,7 @@ FarmDirect AI is a modular full-stack application that separates responsibilitie
 - Flask-based REST API
 - SQLAlchemy models and database sessions
 - JWT-based authentication and role checks
-- Route modules for auth, products, orders, notifications, logistics, payments, admin, reviews, and AI
+- Route modules for auth, products, orders, notifications, logistics, payments, reviews, and AI
 
 ### Data Layer
 - PostgreSQL-compatible SQLAlchemy models
@@ -28,7 +28,8 @@ FarmDirect AI is a modular full-stack application that separates responsibilitie
 
 The system follows a layered architecture:
 
-1. Presentation layer: React pages and UI components
+1. Presentation layFarmDirect AI is a modular full-stack application that separates responsibilities between frontend interfaces, backend API services, data persistence, and operational logic. The architecture is built around a role-aware application model and a shared database layer that supports both commerce and logistics workflows.
+er: React pages and UI components
 2. API layer: Flask route handlers and controller logic
 3. Service/data layer: model access and domain business rules
 4. Persistence layer: PostgreSQL-backed SQLAlchemy models
@@ -38,7 +39,6 @@ The system follows a layered architecture:
 
 The system defines multiple user roles, each mapped to dedicated workflows and dashboard surfaces:
 
-- Admin
 - Farmer
 - Consumer
 - Bulk buyer
@@ -86,12 +86,11 @@ Responsible for:
 - price prediction calculations
 - empty-state and fallback behavior when no data exists
 
-### Admin and Audit
+### Audit Records
 Responsible for:
-- KPI dashboards
-- user inspection
 - audit event retention
-- platform administrative workflows
+
+Admin-named routes and screens in the source are legacy remnants, not a supported role or workflow.
 
 ## 6. Data Model Principles
 
@@ -127,7 +126,6 @@ The frontend uses a route-driven structure with role-aware screen layouts:
 - Consumer pages
 - Farmer pages
 - Logistics pages
-- Admin pages
 - Shared layout and route guards
 
 Protected route logic ensures users do not reach unauthorized screens.

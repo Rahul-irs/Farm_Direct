@@ -19,7 +19,7 @@ export default function FarmerDashboardPage() {
     const [orders, setOrders] = useState([]);
     const [error, setError] = useState('');
     const name = user.full_name || 'Farmer';
-    const pendingPayments = orders.filter((order) => order.status === 'PENDING').reduce((total, order) => total + Number(order.total_amount || 0), 0);
+    const pendingPayments = orders.filter((order) => ['PENDING', 'PAYMENT_PENDING'].includes(order.status)).reduce((total, order) => total + Number(order.total_amount || 0), 0);
 
     useEffect(() => {
         Promise.all([getFarmerInventoryOverview(), getFarmerPaymentSummary(), getOrders()])
@@ -81,7 +81,7 @@ export default function FarmerDashboardPage() {
                         <div>
                             <span>Pending Payments</span>
                             <strong>{formatCurrency(pendingPayments)}</strong>
-                            <small>{orders.filter((order) => order.status === 'PENDING').length} orders awaiting review</small>
+                            <small>{orders.filter((order) => ['PENDING', 'PAYMENT_PENDING'].includes(order.status)).length} orders awaiting review</small>
                         </div>
                     </div>
 

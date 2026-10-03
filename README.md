@@ -84,6 +84,8 @@ The current implementation is a working vertical slice of the farm-to-consumer w
 
 ## User Roles
 
+The supported application roles are farmer, FPO, consumer, bulk buyer, facilitator/field assistant, and logistics partner. Admin is not a supported application role; any admin-named seed data or source remnants are legacy and outside the documented workflows.
+
 ### Farmer
 - Owns product listings and inventory
 - Views assigned orders and fulfillment information

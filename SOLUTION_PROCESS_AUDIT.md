@@ -6,7 +6,7 @@
 
 ## 1. Project Overview
 
-FarmDirect AI is a React single-page application with a Flask/SQLAlchemy JSON API. The intended marketplace connects independent farmers and buyers, with additional FPO, field-assistant, bulk-buyer, logistics-provider, and admin roles.
+FarmDirect AI is a React single-page application with a Flask/SQLAlchemy JSON API. The supported marketplace roles are farmer, consumer, FPO, field assistant, bulk buyer, and logistics provider. There is no supported admin role.
 
 The current code implements user accounts, email verification, product listings, carts, order records, local development payment records, logistics assignments/status events, partner records, notifications, reviews, and heuristic summaries/forecasts. It is not yet a fully integrated real-world agricultural exchange: payments are simulated, route estimates are deterministic, tracking is status-event based rather than GPS-based, and some dashboard content is static/demo data.
 
@@ -47,7 +47,7 @@ The frontend uses `fetch` in [frontend/src/services/api.js](frontend/src/service
 
 ## 5. User Roles
 
-Runtime roles accepted at public registration are `consumer`, `farmer`, `fpo`, `field_assistant`, `bulk_buyer`, and `logistics_provider`. Admin is not offered by public registration; the seeded/demo data or privileged setup supplies it. A facilitator is represented technically as the `field_assistant` role, not a separate Sachivalayam/RBK account type.
+The six supported roles are `consumer`, `farmer`, `fpo`, `field_assistant`, `bulk_buyer`, and `logistics_provider`; there is no supported admin role or admin demo account. Admin-named routes, screens, and seed remnants found during source inspection are legacy implementation artifacts and are not supported user workflows. A facilitator is represented technically as the `field_assistant` role, not a separate Sachivalayam/RBK account type.
 
 A farmer's `users.id` is the farmer ID used by `products.farmer_id`, `fpo_memberships.farmer_id`, and `field_assignments.farmer_id`. The facilitator does not own assisted farmer products when using the dedicated field-assistant produce endpoint; it creates products with the selected farmer's ID.
 
@@ -83,7 +83,7 @@ Farmer overview calculates active listings, available stock, reserved stock, sol
 
 ### Orders, payments, and earnings
 
-`GET /api/orders/` filters farmer orders through their products. Farmer can move `PENDING` or `PAID` to `CONFIRMED` or `CANCELLED`, then `CONFIRMED` to `LOGISTICS_REQUESTED`; from that state the farmer/admin endpoint also permits `COMPLETED` directly. If multiple farmers' products occur in one order, a farmer/assistant cannot update it unless all lines belong to farmers they manage; otherwise API returns 409 for coordination.
+`GET /api/orders/` filters farmer orders through their products. Farmer can move `PENDING` or `PAID` to `CONFIRMED` or `CANCELLED`, then `CONFIRMED` to `LOGISTICS_REQUESTED`; a legacy privileged path also permits `COMPLETED` directly from that state, but it is not a supported role workflow. If multiple farmers' products occur in one order, a farmer/assistant cannot update it unless all lines belong to farmers they manage; otherwise API returns 409 for coordination.
 
 The first order creation creates a farmer notification. Payment does not create a farmer payment notification or payout. `GET /api/payments/farmer/summary` derives revenue from order lines in selected paid-like statuses; pending amount sums each matching whole order total, which can overcount multi-farmer orders. There is no disbursement, settlement, payout schedule, or bank transfer. No refund exists. A dev payment can mark an order paid regardless of its prior status if no payment exists.
 
@@ -135,7 +135,7 @@ Evidence: [frontend/src/pages/logistics/LogisticsDashboardPage.jsx](frontend/src
 
 A logistics provider logs in as `logistics_provider`, manages vehicles/drivers, sees available/unassigned and own deliveries, and can accept an available delivery. Order status `LOGISTICS_REQUESTED` creates one `Delivery` with pickup from the first order item's product location and literal destination `Customer delivery address`; there is no buyer address input. Provider transitions: `AVAILABLE` -> `ACCEPTED` -> `VEHICLE_ASSIGNED` -> `PICKED_UP` -> `IN_TRANSIT` -> `OUT_FOR_DELIVERY` -> `DELIVERED`. Vehicle/driver assignment checks availability and provider ownership, marks them unavailable, and delivery marks them available again. It does not check vehicle capacity against shipment quantity.
 
-Each delivery status change creates a `TrackingEvent` with a status, optional note, timestamp. This is event-based status history, not coordinates or GPS. No GPS device, location stream, proof-of-delivery image/signature, stop model, multi-stop optimization, actual route engine, or accurate ETA is present. Route estimate endpoint hashes pickup/destination to deterministic distance, ETA and cost; it is explicitly a local estimate. On delivery, order status becomes `DELIVERED` and consumer gets a notification. Farmer's order endpoint has no transition from `DELIVERED` to `COMPLETED`, while review requires `COMPLETED`; only `LOGISTICS_REQUESTED -> COMPLETED` can be advanced directly by farmer/admin, even before delivery.
+Each delivery status change creates a `TrackingEvent` with a status, optional note, timestamp. This is event-based status history, not coordinates or GPS. No GPS device, location stream, proof-of-delivery image/signature, stop model, multi-stop optimization, actual route engine, or accurate ETA is present. Route estimate endpoint hashes pickup/destination to deterministic distance, ETA and cost; it is explicitly a local estimate. On delivery, order status becomes `DELIVERED` and consumer gets a notification. Farmer's order endpoint has no transition from `DELIVERED` to `COMPLETED`, while review requires `COMPLETED`; a legacy privileged path can advance `LOGISTICS_REQUESTED -> COMPLETED` before delivery, but is not a supported role workflow.
 
 Authorization caveat: consumer tracking checks order ownership; farmer checks product ownership; provider checks assigned provider. Bulk buyer role is permitted in the tracking decorator but has no ownership check in the route. Logistics provider accepts any unassigned delivery ID; this can allow claiming one not returned in their list if guessed. Treat as authorization gaps.
 
@@ -171,11 +171,11 @@ Potential oversell remains under concurrent checkouts: the code checks and mutat
 
 Evidence: [frontend/src/pages/consumer/CartPage.jsx](frontend/src/pages/consumer/CartPage.jsx), [frontend/src/services/api.js](frontend/src/services/api.js), [backend/app/routes/payments.py](backend/app/routes/payments.py), [backend/app/models/payment.py](backend/app/models/payment.py).
 
-`POST /api/payments/orders/<id>/pay` checks buyer owns the order and that no Payment row exists, creates `Payment` with order total and `DEV-<random>` reference, default provider `development`, default status `SUCCEEDED`, sets order `PAID`, commits and returns both. It does not contact a provider or verify funds. There is no transaction initiation/redirect, provider callback/webhook, signature validation, failure state handler, refund record/route, settlement, or farmer payout. Payment list is buyer/admin; farmer summary derives amounts from order lines, not transfer records.
+`POST /api/payments/orders/<id>/pay` checks buyer owns the order and that no Payment row exists, creates `Payment` with order total and `DEV-<random>` reference, default provider `development`, default status `SUCCEEDED`, sets order `PAID`, commits and returns both. It does not contact a provider or verify funds. There is no transaction initiation/redirect, provider callback/webhook, signature validation, failure state handler, refund record/route, settlement, or farmer payout. The supported payment list is buyer-facing; an admin-named path in source is a legacy artifact outside the supported role model. Farmer summary derives amounts from order lines, not transfer records.
 
 ## 17. Order Lifecycle
 
-Actual order status strings in route behavior: `PENDING`, `PAID`, `CONFIRMED`, `LOGISTICS_REQUESTED`, `CANCELLED`, `COMPLETED`, `DELIVERED`. The legal transitions in farmer/admin status API are: `PENDING|PAID -> CONFIRMED|CANCELLED`; `CONFIRMED -> LOGISTICS_REQUESTED|CANCELLED`; `LOGISTICS_REQUESTED -> COMPLETED`. Delivery route separately sets `DELIVERED`. There is no constrained enum or complete unified state machine. Payment may set a cancelled/advanced order to `PAID` if it has no payment. Delivery status and order status are separate fields with partial synchronization. Canceled orders retain decremented stock; no refund is triggered.
+Actual order status strings in route behavior: `PENDING`, `PAID`, `CONFIRMED`, `LOGISTICS_REQUESTED`, `CANCELLED`, `COMPLETED`, `DELIVERED`. The farmer status API supports: `PENDING|PAID -> CONFIRMED|CANCELLED`; `CONFIRMED -> LOGISTICS_REQUESTED|CANCELLED`; `LOGISTICS_REQUESTED -> COMPLETED`. A separate legacy privileged path also supports the final transition but is not part of a supported role workflow. Delivery route separately sets `DELIVERED`. There is no constrained enum or complete unified state machine. Payment may set a cancelled/advanced order to `PAID` if it has no payment. Delivery status and order status are separate fields with partial synchronization. Canceled orders retain decremented stock; no refund is triggered.
 
 ## 18. Order Tracking Flow
 
@@ -217,7 +217,7 @@ Evidence: [database/schema.sql](database/schema.sql), [backend/app/models](backe
 | Bulk buyer -> demand | `bulk_requirements.buyer_id`, crop, quantity, location, status; not an order |
 | Reviews | `reviews` connects product, buyer, completed order; uniqueness per product/customer/order |
 | Auth tokens | `email_verification_tokens`, `password_reset_tokens`; used timestamp and 10-minute expiry |
-| Audit | `audit_logs`; currently narrow admin status changes only |
+| Audit | `audit_logs`; currently records a narrow legacy account-status action |
 | Wishlist | ORM `wishlist_items`; absent from SQL reference schema |
 
 ORM models define 21 tables; `database/schema.sql` declares 19 and does not match ORM metadata. Schema omissions include email-verification tokens, wishlist, and `users.profile_data`. SQL has additional CHECK constraints and nullability differences from ORM. Runtime Render command runs `db.create_all()` plus a small PostgreSQL compatibility DDL helper, not versioned migrations; migrations folder contains a README but no migration revisions. Treat ORM/runtime metadata as the application implementation, SQL file as an inconsistent reference, not a safely reconciled production migration.
@@ -237,7 +237,7 @@ Client visibility is from routes, `ProtectedRoute`, and role shells; API decorat
 | Field assistant | Protected dashboard/profile | assigned farmer produce create/update/upload | assigned farmer orders/sales summary | notifications, rule/aggregate demand; no audit of assisted actions |
 | Logistics provider | Protected logistics shell/profile/settings | vehicle/driver CRUD | no payment/order checkout | accept/advance own deliveries, status tracking, deterministic route estimate |
 
-Admin exists in protected routes/APIs, although not in the six primary marketplace roles; public registration rejects admin. Role state is cached client-side but API uses DB role. Audit logs have a page/endpoint with no admin sidebar link (frontend review).
+There is no supported admin role. Admin-named protected routes, APIs, screens, and seed remnants are legacy source artifacts, not supported user workflows; public registration supports only the six roles above. Role state is cached client-side but API uses DB role. A legacy audit page/endpoint exists but has no corresponding supported role navigation.
 
 ## 24. Frontend → Backend → Database Traces
 
@@ -248,7 +248,7 @@ Evidence: [frontend/src/services/api.js](frontend/src/services/api.js), [backend
 3. **OTP:** verify form -> `verifyEmail()` -> `POST /auth/verify-email` -> hashed token lookup/expiry -> `users.is_verified=true`, token.used_at -> JSON -> frontend login. Resend route may throw if SMTP fails.
 4. **Forgot password:** forgot page -> `requestPasswordReset()` -> `/auth/forgot-password` -> identifier lookup, reset token row and SMTP email -> generic success or SMTP 503 -> frontend stores identifier. Phone lookup still emails account email.
 5. **Farmer adds product:** farmer form -> `createProduct()` -> `POST /products/` -> role decorator -> validate/name/qty/price/location -> `products` row with authenticated farmer ID -> product JSON -> page reloads own list. Image then goes separately to `/products/<id>/image` -> local file + DB image path.
-6. **Farmer edits product:** edit form -> `updateProduct()` -> `PATCH /products/<id>` -> ownership/admin check -> accepted columns and numeric validation -> update `products` -> updated JSON -> frontend replaces/reloads row.
+6. **Farmer edits product:** edit form -> `updateProduct()` -> `PATCH /products/<id>` -> ownership check (plus a legacy privileged override in source) -> accepted columns and numeric validation -> update `products` -> updated JSON -> frontend replaces/reloads row.
 7. **Consumer searches:** marketplace input -> API helper `getProducts` (optional `?search=`) -> `GET /products/` -> active products + optional name/crop/location SQL search -> product JSON -> React displays/filter/sorts. Seller display name is not part of product serializer.
 8. **Consumer adds cart:** add button -> `addToCart(id, qty)` -> `POST /orders/cart/items` -> validate positive qty/current stock -> create/find cart and upsert cumulative cart item -> commit -> cart JSON -> UI refresh. No stock hold.
 9. **Consumer checkout:** checkout button -> `checkout()` -> `POST /orders/` -> check cart/current stock -> subtotal -> Order PENDING, OrderItems, decrement product quantity, notify farmer/buyer, clear cart, commit -> order JSON -> UI proceeds to pay. No address/fees submitted.
@@ -327,7 +327,7 @@ Status vocabulary: **Connected** = request and persistence path exists; **Partia
 - **Bulk buyer:** dedicated shell includes dashboard, requirements, matching, orders, logistics, payments, analytics, notifications, profile/settings; shared marketplace/cart/order paths. Protected client paths and role decorators apply, except tracking API lacks buyer ownership check.
 - **Facilitator:** dashboard, farmers, registration, add produce, inventory, orders, sales, demand, notifications, profile/settings. Support sidebar target has no matching route and reaches Not Found. Data fallback makes empty/error state look populated.
 - **Logistics:** dashboard, deliveries/available and assigned, vehicles, drivers, tracking, route estimate, earnings, notifications, profile/settings. Route and delivery functions are status/local-estimate based; earnings are static per frontend audit.
-- **Admin (additional role):** dashboard/users/products/orders/audit logs. Audit page is route/API-backed but not linked in admin sidebar according to frontend audit. Admin UI is not publicly registrable.
+- **Unsupported legacy admin-named UI/routes:** source contains dashboard, user/product/order, and audit surfaces, but they are not a supported role or workflow and must not be used as demo guidance.
 
 `DashboardShell` search behavior is role-dependent and does nothing on several role shells according to the frontend audit. Some dashboard cards and charts are static even on protected routes. Client role guard is not a substitute for backend authorization.
 
@@ -351,7 +351,7 @@ This audit did **not** exercise every authenticated dashboard at desktop/laptop/
 - Field assistant registration/assignment and farmer-owned assisted listings.
 - Logistics vehicles/drivers, provider acceptance, delivery transitions, tracking status events.
 - Review and wishlist ORM/API support.
-- Admin overview/management and narrow audit write path.
+- Legacy admin-named endpoints and pages remain in source but are outside the supported product role model.
 - SQL aggregate/rule-based insights and forecasts.
 
 ## 30. Partially Implemented Features
@@ -412,7 +412,7 @@ This audit did **not** exercise every authenticated dashboard at desktop/laptop/
 - `/uploads/<filename>` is unauthenticated; extension-only validation, no file content/size validation, local storage, old replaced files retained.
 - Payment has no provider verification, and order status can be paid after cancellation/other transition if no payment exists.
 - No CSRF issue is central to bearer-token API, but JWT revocation/refresh lifecycle and logout revocation are absent; client logout only removes local tokens.
-- Audit log is narrow: admin user status changes only. Important assisted, product, order, payment and delivery changes are not recorded.
+- Audit log is narrow: it records a legacy account-status action only. Important assisted, product, order, payment and delivery changes are not recorded.
 - DB runtime schema mutation and migrations are not versioned; schema/model mismatch risks deployment drift.
 - `.env.example` contains credential-like values in this repository state and both `.env` and `.env.example` were previously found tracked; values are deliberately not reproduced here. Treat exposed values as compromised, rotate if real, and never include them in this document. `render.yaml` uses manual environment values for DB/mail and generated JWT secret.
 
@@ -468,6 +468,6 @@ Priority order (recommendations only; no changes made):
 | AI demand/price | Public/farmer/assistant | Forecast/insights pages | SQL sums/averages/formulas | Products/order items | Heuristic | Not trained AI | `ai.py` |
 | Reviews | Consumer/bulk | Review form | Completed order validation | `reviews` | DB-backed | Partial; normal delivery never sets completed | `ReviewPage.jsx`; `reviews.py`; `logistics.py` |
 | Profile/settings | Roles | Profile/settings forms | `/auth/me`, password | `users` JSON/profile | DB-backed plus local prefs | Partial; email reverify/payout info absent | `auth.py`; role pages |
-| Admin audit | Admin | Page exists | List; writes user status changes | `audit_logs` | DB-backed, narrow | Partial; sidebar omitted per frontend audit | `admin.py`; `AdminAuditLogsPage.jsx` |
+| Legacy audit code | Unsupported | Legacy page exists | Legacy list/status-change routes | `audit_logs` | DB-backed, narrow | Not a supported role workflow | `admin.py`; `AdminAuditLogsPage.jsx` |
 | Persistent uploaded assets | Farmer/assistant | Upload input | Local filesystem route | Path only in DB | Local disk | Not production-durable by config | `products.py`; `render.yaml` |
 

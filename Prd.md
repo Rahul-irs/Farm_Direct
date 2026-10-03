@@ -2,7 +2,7 @@
 
 ## 1. Product Overview
 
-FarmDirect AI is a digital agricultural commerce and operations platform designed to connect farmers, FPOs, bulk buyers, consumers, logistics partners, and administrators in a single ecosystem. The platform supports direct farm-to-market commerce, supply coordination, order fulfillment, AI-powered forecasting, and operational oversight.
+FarmDirect AI is a digital agricultural commerce and operations platform designed to connect farmers, FPOs, bulk buyers, consumers, field assistants, and logistics partners in a single ecosystem. The platform supports direct farm-to-market commerce, supply coordination, order fulfillment, and forecasting. There is no admin role in the supported product.
 
 The system aims to reduce friction across the agricultural value chain while ensuring traceability, transparent pricing, and reliable logistics.
 
@@ -15,7 +15,7 @@ Provide a resilient and role-aware marketplace that helps stakeholders:
 - Bulk buyers source large volumes efficiently
 - Consumers discover and buy fresh produce reliably
 - Logistics providers manage delivery execution
-- Administrators monitor platform health and governance
+- Platform events are recorded to support traceability
 
 ## 3. Target Users
 
@@ -45,17 +45,12 @@ Provide a resilient and role-aware marketplace that helps stakeholders:
 - Manage vehicles, drivers, and route-related status transitions
 - Track shipment progress
 
-### Administrators
-- Monitor users, products, payments, and orders
-- Audit system actions and events
-- Manage governance and oversight
-
 ## 4. Core Functional Requirements
 
 ### 4.1 Authentication and Access Control
 - Secure login for all user roles
 - JWT-based authenticated sessions
-- Role-based authorization for farmer, consumer, bulk buyer, admin, logistics, FPO, and field assistant use cases
+- Role-based authorization for farmer, consumer, bulk buyer, logistics, FPO, and field assistant use cases
 - Email validation and normalized login flows
 - Password reset and OTP-based verification workflow
 
@@ -85,12 +80,6 @@ Provide a resilient and role-aware marketplace that helps stakeholders:
 - Email-based verification and password reset flows
 - Audit trail for key actions
 
-### 4.6 Admin and Governance
-- Overview dashboards for platform metrics
-- User management and audit visibility
-- Order and product oversight
-- Risk and operations monitoring
-
 ## 5. Business Goals
 
 - Increase trust in agricultural transactions
@@ -109,7 +98,7 @@ Provide a resilient and role-aware marketplace that helps stakeholders:
 - JWT-based access control
 - Role-based mutation restrictions
 - Secure handling of user credentials and tokens
-- Protection against unauthorized admin or supplier actions
+- Protection against unauthorized role-specific or supplier actions
 
 ### Reliability
 - Database-backed persistence for orders, payments, reviews, and logistics
@@ -144,12 +133,6 @@ Provide a resilient and role-aware marketplace that helps stakeholders:
 3. Update shipment status
 4. Track progress to completion
 
-### Admin Flow
-1. Sign in as admin
-2. Review platform performance
-3. Inspect users and orders
-4. Audit actions and system health
-
 ## 8. Assumptions and Constraints
 
 - The solution is designed around a PostgreSQL-compatible SQLAlchemy backend.
@@ -165,9 +148,9 @@ The product is successful when:
 - Products can be listed, browsed, and purchased
 - Orders flow from checkout to payment to fulfillment
 - Buyers, farmers, and logistics partners can collaborate without manual coordination gaps
-- Admins can monitor system state and audit events
+- Important platform events are recorded for traceability
 - Forecasting and recommendation modules provide useful output with explicit empty-data handling
 
 ## 10. Release Readiness
 
-The current project is a validated demo-grade implementation with the essential commerce, identity, logistics, and admin workflows operational. It is ready for further enhancement, hardening, and production deployment planning.
+The current project is a validated demo-grade implementation with essential commerce, identity, and logistics workflows. Admin-named source remnants are not part of the supported product. It is ready for further enhancement, hardening, and production deployment planning.

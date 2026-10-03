@@ -32,7 +32,7 @@ def _expires_at():
 def register():
     data = request.get_json(silent=True) or {}
     full_name = data.get('full_name')
-    email = data.get('email')
+    email = (data.get('email') or '').strip().lower()
     password = data.get('password')
     role = data.get('role', 'consumer')
 
@@ -41,12 +41,12 @@ def register():
     if role not in {'consumer', 'farmer', 'fpo', 'field_assistant', 'bulk_buyer', 'logistics_provider'}:
         return jsonify({'success': False, 'message': 'Invalid registration role'}), 400
 
-    if User.query.filter_by(email=email.lower()).first():
+    if User.query.filter_by(email=email).first():
         return jsonify({'success': False, 'message': 'Email already registered'}), 409
 
     user = User(
         full_name=full_name,
-        email=email.lower(),
+        email=email,
         phone=data.get('phone'),
         password_hash=generate_password_hash(password),
         role=role,
@@ -84,6 +84,8 @@ def login():
     user = User.query.filter_by(email=email).first()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+    if not user.is_active:
+        return jsonify({'success': False, 'message': 'This account is inactive'}), 403
     if not user.is_verified:
         return jsonify({'success': False, 'message': 'Verify your email before signing in', 'verification_required': True}), 403
 

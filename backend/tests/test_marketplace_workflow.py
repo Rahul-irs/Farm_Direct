@@ -29,6 +29,7 @@ def test_checkout_uses_server_price_and_reduces_inventory(monkeypatch):
 
     assert response.status_code == 201
     assert response.get_json()['order']['total_amount'] == 60.0
+    assert response.get_json()['order']['status'] == 'PENDING'
     with app.app_context():
         assert db.session.get(Product, product_id).quantity == 7
 

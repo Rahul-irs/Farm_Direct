@@ -180,7 +180,7 @@ def tracking(user, order_id):
     delivery = Delivery.query.filter_by(order_id=order_id).first()
     if delivery is None:
         return jsonify({'success': False, 'message': 'Tracking is not available yet'}), 404
-    if user.role == 'consumer' and delivery.order.customer_id != user.id:
+    if user.role in {'consumer', 'bulk_buyer'} and delivery.order.customer_id != user.id:
         return jsonify({'success': False, 'message': 'You do not have access to this delivery'}), 403
     if user.role == 'farmer' and not any(item.product.farmer_id == user.id for item in delivery.order.items):
         return jsonify({'success': False, 'message': 'You do not have access to this delivery'}), 403

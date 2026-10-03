@@ -5,7 +5,6 @@ This document describes the working flow of the FarmDirect application using the
 
 DEMO ACCOUNTS
 -------------
-Admin:              admin@farmdirect.ai
 Farmer:             farmer@farmdirect.ai
 Second farmer:      farmer2@farmdirect.ai
 Consumer:           consumer@farmdirect.ai
@@ -69,17 +68,6 @@ LOGISTICS FLOW
 5. Tracking events reflect the delivery journey until completion.
 6. The route estimate screen helps the logistics team plan pickup and destination movement.
 
-ADMIN FLOW
-----------
-1. Login as admin@farmdirect.ai.
-2. Open the admin dashboard to review system health.
-3. View platform overview values like users, farmers, orders, and revenue.
-4. Review analytics by order status and user role.
-5. Manage users and activate or deactivate accounts.
-6. Review all products in the catalogue.
-7. Inspect all orders and their transaction status.
-8. Review audit logs for platform actions and changes.
-
 END-TO-END CHECK
 -----------------
 The project has been validated with:
@@ -94,6 +82,6 @@ Verified flows:
 - Payment for orders
 - Farmer confirmation and logistics request handoff
 - Logistics delivery acceptance
-- Admin overview and management API access
+- Supported role login and marketplace workflow access
 
 Status: All core functionality is working correctly with the current project state.

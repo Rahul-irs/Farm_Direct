@@ -47,7 +47,7 @@ class Order(db.Model):
             'id': self.id,
             'customer_id': self.customer_id,
             'total_amount': self.total_amount,
-            'status': normalize_order_status(self.status),
+            'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.items],
             'allocations': [allocation.to_dict() for allocation in self.allocations],

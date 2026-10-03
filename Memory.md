@@ -2,7 +2,7 @@
 
 ## Project Context
 
-FarmDirect AI is an agricultural commerce and operations platform connecting farmers, FPOs, bulk buyers, consumers, logistics providers, and administrators in a single system.
+FarmDirect AI is an agricultural commerce and operations platform connecting farmers, FPOs, bulk buyers, consumers, field assistants, and logistics providers. The supported roles do not include admin.
 
 ## Key Project Facts
 
@@ -10,7 +10,7 @@ FarmDirect AI is an agricultural commerce and operations platform connecting far
 - Backend: Flask + SQLAlchemy
 - Database: PostgreSQL-compatible schema
 - Authentication: JWT and role-aware access control
-- Core workflows: marketplace, orders, payments, logistics, admin operations, AI forecasting
+- Core workflows: marketplace, orders, payments, logistics, AI forecasting
 
 ## Important Operating Notes
 
@@ -24,7 +24,7 @@ FarmDirect AI is an agricultural commerce and operations platform connecting far
 - Favor trustworthy, operational, and role-aware user experience design.
 - Keep user journeys direct and measurable.
 - Design around visible status progression for orders and deliveries.
-- Support business transparency across supply, fulfillment, and administration.
+- Support business transparency across supply and fulfillment.
 
 ## Delivery Priorities
 

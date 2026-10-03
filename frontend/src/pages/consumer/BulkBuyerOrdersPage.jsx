@@ -22,12 +22,13 @@ export default function BulkBuyerOrdersPage() {
     }, []);
 
     const filteredOrders = useMemo(() => orders.filter((order) => {
-        const matchesTab = activeTab === 'All Orders' || String(order.status || '').toUpperCase() === tabStatus[activeTab];
+        const status = String(order.status || '').toUpperCase();
+        const matchesTab = activeTab === 'All Orders' || (activeTab === 'Pending' ? ['PENDING', 'PAYMENT_PENDING'].includes(status) : status === tabStatus[activeTab]);
         const text = `${order.id} ${order.items?.map((item) => item.product_name).join(' ')} ${order.items?.map((item) => item.farmer_name).join(' ')}`.toLowerCase();
         return matchesTab && text.includes(search.trim().toLowerCase());
     }), [activeTab, orders, search]);
     const totalValue = orders.reduce((total, order) => total + Number(order.total_amount || 0), 0);
-    const countFor = (status) => status ? orders.filter((order) => String(order.status || '').toUpperCase() === status).length : orders.length;
+    const countFor = (status) => status === 'PENDING' ? orders.filter((order) => ['PENDING', 'PAYMENT_PENDING'].includes(String(order.status || '').toUpperCase())).length : status ? orders.filter((order) => String(order.status || '').toUpperCase() === status).length : orders.length;
 
     return <main className="bulk-buyer-orders-page"><div className="bulk-buyer-orders-container">
         <header className="bulk-buyer-orders-heading"><div><span className="bulk-buyer-kicker">Bulk procurement</span><h1>Bulk Orders</h1><p>Track every high-volume purchase from supplier confirmation to delivery.</p></div><div className="bulk-buyer-orders-summary-mark"><Package size={23}/><strong>{orders.length}</strong><span>total orders</span></div></header>

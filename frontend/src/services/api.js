@@ -3,8 +3,8 @@ async function request(path, options) {
     const token = localStorage.getItem('farmdirect_token');
     const isFormData = options?.body instanceof FormData;
     const response = await fetch(`${API_URL}${path}`, {
-        headers: { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options?.headers || {}) },
         ...options,
+        headers: { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options?.headers || {}) },
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok)
@@ -147,8 +147,12 @@ export function getVehicles() {
 export function getDrivers() {
     return request('/logistics/drivers');
 }
-export function getDemandForecast(crop = '') {
-    return request(`/ai/demand-forecast${crop.trim() ? `?crop=${encodeURIComponent(crop.trim())}` : ''}`);
+export function getDemandForecast(crop = '', location = '') {
+    const params = new URLSearchParams();
+    if (crop.trim()) params.set('crop', crop.trim());
+    if (location.trim()) params.set('location', location.trim());
+    const query = params.toString();
+    return request(`/ai/demand-forecast${query ? `?${query}` : ''}`);
 }
 export function getSupplierMatches(crop, quantity = 0) {
     return request(`/ai/supplier-matches?crop=${encodeURIComponent(crop || '')}&quantity=${quantity}`);

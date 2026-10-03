@@ -9,7 +9,6 @@ it requests them from Flask APIs.
 
 Demo accounts
 -------------
-Admin:              admin@farmdirect.ai
 Farmer:             farmer@farmdirect.ai
 Second farmer:      farmer2@farmdirect.ai
 Consumer:           consumer@farmdirect.ai
@@ -43,8 +42,8 @@ Real-world story
 7. SwiftRoute accepts the order's Delivery. A vehicle, driver, and six Tracking
    events show the journey from AVAILABLE to DELIVERED.
 
-8. The admin account can inspect users, products, orders, analytics, and the
-   audit event showing that the demo scenario was created.
+8. The seeded accounts can inspect their own supported role workflows. The
+   demo scenario's audit event is stored as platform activity history.
 
 How to load it
 --------------

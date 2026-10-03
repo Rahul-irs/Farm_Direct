@@ -10,7 +10,7 @@ The current project already contains a substantial vertical slice covering:
 - order payment lifecycle
 - logistics tracking
 - AI forecasting endpoints
-- admin dashboards and audit visibility
+- role-specific dashboards and audit visibility
 
 The following tasks focus on finishing, hardening, and extending this foundation.
 
@@ -32,7 +32,7 @@ The following tasks focus on finishing, hardening, and extending this foundation
 ### Operations
 - [x] Logistics and delivery workflow
 - [x] Vehicle/driver-related models and status flow
-- [x] Admin overview and audit surface
+- [x] Core role dashboards and audit event storage
 
 ### Intelligence
 - [x] Forecasting and supplier-matching endpoints
@@ -42,7 +42,7 @@ The following tasks focus on finishing, hardening, and extending this foundation
 
 ### Security Hardening
 - [ ] Review all auth routes for consistent JWT validation patterns
-- [ ] Audit privilege checks for admin-only mutation endpoints
+- [ ] Review authorization on all privileged mutation endpoints
 - [ ] Ensure sensitive values are not exposed in API responses
 - [ ] Validate password reset and OTP flows in production-like configuration
 
@@ -70,7 +70,7 @@ The following tasks focus on finishing, hardening, and extending this foundation
 - Enhance FPO and farmer dashboards
 - Refine logistics routing and tracking UX
 - Improve bulk buyer sourcing workflows
-- Add stronger admin monitoring views
+- Add stronger farmer and FPO analytics views
 
 ### Phase 3: Intelligence and Growth
 - Add richer pricing and demand models

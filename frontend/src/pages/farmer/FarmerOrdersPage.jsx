@@ -6,7 +6,7 @@ import { getProductImage } from '../../utils/productImages';
 
 const filters = ['ALL', 'PENDING', 'CONFIRMED', 'LOGISTICS_REQUESTED', 'DELIVERED', 'COMPLETED'];
 const filterLabels = { ALL: 'All Orders', PENDING: 'Pending', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In Progress', DELIVERED: 'Delivered', COMPLETED: 'Completed' };
-const statusLabels = { PENDING: 'Pending', PAID: 'Paid', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In Progress', DELIVERED: 'Delivered', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
+const statusLabels = { PENDING: 'Pending', PAYMENT_PENDING: 'Payment processing', PAID: 'Paid', CONFIRMED: 'Confirmed', LOGISTICS_REQUESTED: 'In Progress', DELIVERED: 'Delivered', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
 
 function orderDate(value) {
     return value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent order';
@@ -45,8 +45,8 @@ export default function FarmerOrdersPage() {
         catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to delete order'); }
     }
 
-    const visibleOrders = useMemo(() => filter === 'ALL' ? orders : orders.filter((order) => filter === 'PENDING' ? ['PENDING', 'PAID'].includes(order.status) : order.status === filter), [filter, orders]);
-    const filterCount = (item) => item === 'ALL' ? orders.length : orders.filter((order) => item === 'PENDING' ? ['PENDING', 'PAID'].includes(order.status) : order.status === item).length;
+    const visibleOrders = useMemo(() => filter === 'ALL' ? orders : orders.filter((order) => filter === 'PENDING' ? ['PENDING', 'PAYMENT_PENDING', 'PAID'].includes(order.status) : order.status === filter), [filter, orders]);
+    const filterCount = (item) => item === 'ALL' ? orders.length : orders.filter((order) => item === 'PENDING' ? ['PENDING', 'PAYMENT_PENDING', 'PAID'].includes(order.status) : order.status === item).length;
 
     return <main className="farmer-orders-page farmer-orders-reference"><div className="farmer-orders-container">
         <header className="farmer-orders-reference-header"><h1>Orders</h1><button className="farmer-orders-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={15} className={loading ? 'farmer-spin' : ''} /> Refresh</button></header>

@@ -48,7 +48,7 @@ Set the URL in `.env`. Do not put database passwords in React or commit a real p
 | `field_assignments` | Field-assistant to farmer ownership boundary |
 | `bulk_requirements` | Bulk-buyer procurement requirements |
 | `password_reset_tokens` | Hashed, expiring reset codes |
-| `audit_logs` | Administrative activity history |
+| `audit_logs` | Recorded platform activity history |
 
 ## Important relationships
 

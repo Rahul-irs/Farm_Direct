@@ -22,9 +22,6 @@ export default function CartPage() {
     }, []);
 
     const total = cart?.items.reduce((sum, item) => sum + item.subtotal, 0) || 0;
-    const deliveryCost = cart?.items.length ? 120 : 0;
-    const taxes = Number(total) * 0.05;
-    const grandTotal = Number(total) + deliveryCost + taxes;
 
     async function remove(id) {
         try {
@@ -168,17 +165,9 @@ export default function CartPage() {
                                                 <span>Subtotal</span>
                                                 <strong>₹{Number(total).toFixed(2)}</strong>
                                             </div>
-                                            <div>
-                                                <span>Delivery</span>
-                                                <strong>₹{deliveryCost.toFixed(2)}</strong>
-                                            </div>
-                                            <div>
-                                                <span>Taxes</span>
-                                                <strong>₹{taxes.toFixed(2)}</strong>
-                                            </div>
                                             <div className="cart-summary-total">
-                                                <span>Total amount</span>
-                                                <strong>₹{grandTotal.toFixed(2)}</strong>
+                                                <span>Amount due</span>
+                                                <strong>₹{Number(total).toFixed(2)}</strong>
                                             </div>
                                         </div>
 
