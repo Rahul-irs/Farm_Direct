@@ -3,12 +3,13 @@
 
 .farmer-overview-page {
   min-height: calc(100vh - 70px);
-  padding: 20px 0 28px;
+  padding: clamp(12px, 2vw, 24px) 0 28px;
   background: #edf3f1;
 }
 
 .farmer-overview-shell {
-  width: min(100% - 36px, 1100px);
+  width: min(100% - 36px, 1400px);
+  min-width: 0;
   margin: 0 auto;
   border-radius: 18px;
   background: rgba(246, 247, 243, 0.98);
@@ -119,6 +120,12 @@
   line-height: 1.15;
 }
 
+.dashboard-shell .farmer-overview-title {
+  max-width: none;
+  font-size: clamp(1.7rem, 2.5vw, 2.5rem);
+  line-height: 1.15;
+}
+
 .farmer-overview-subtitle {
   margin: 6px 0 0;
   color: #72817d;
@@ -131,7 +138,7 @@
   border-radius: 14px;
   background: #d9e2d6;
   border: 1px solid rgba(17, 32, 30, 0.06);
-  height: 180px;
+  height: clamp(160px, 14vw, 230px);
   margin-top: 14px;
 }
 
@@ -189,6 +196,7 @@
   align-items: center;
   gap: 12px;
   min-height: 90px;
+  min-width: 0;
   padding: 16px 14px;
   border: 1px solid rgba(17, 32, 30, 0.07);
   border-radius: 12px;
@@ -222,6 +230,7 @@
 
 .farmer-overview-stat-card div {
   display: grid;
+  min-width: 0;
   gap: 4px;
 }
 
@@ -245,7 +254,7 @@
 
 .farmer-overview-lower-grid {
   display: grid;
-  grid-template-columns: 1.5fr 0.85fr;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.85fr);
   gap: 16px;
   margin-top: 18px;
 }
@@ -294,6 +303,7 @@
 .farmer-overview-order-item {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
+  min-width: 0;
   align-items: center;
   gap: 10px;
   border-top: 1px solid rgba(17, 32, 30, 0.06);
@@ -312,6 +322,7 @@
 
 .farmer-overview-order-copy {
   display: grid;
+  min-width: 0;
   gap: 4px;
 }
 
@@ -413,33 +424,132 @@
   font-size: 0.56rem;
 }
 
+@media (max-width: 1100px) {
+  .farmer-overview-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 840px) {
   .farmer-overview-shell {
-    width: min(100% - 18px, 1100px);
+    width: min(100% - 18px, 1400px);
     padding-inline: 12px;
   }
 
-  .farmer-overview-header-row {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .farmer-overview-search {
-    width: 100%;
-  }
-
-  .farmer-overview-user-box {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .farmer-overview-stats,
   .farmer-overview-lower-grid {
     grid-template-columns: 1fr;
   }
 
   .farmer-overview-actions-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .farmer-overview-action-button {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  .farmer-overview-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .farmer-overview-banner {
+    height: clamp(150px, 25vw, 190px);
+  }
+
+  .farmer-overview-lower-grid {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .farmer-overview-page {
+    padding-top: 12px;
+  }
+
+  .farmer-overview-shell {
+    width: calc(100% - 24px);
+    border-radius: 14px;
+    padding: 14px 12px;
+  }
+
+  .dashboard-shell .farmer-overview-title {
+    font-size: clamp(1.45rem, 7vw, 1.9rem);
+    overflow-wrap: anywhere;
+  }
+
+  .farmer-overview-subtitle {
+    font-size: 0.7rem;
+    line-height: 1.45;
+  }
+
+  .farmer-overview-banner {
+    height: 150px;
+  }
+
+  .farmer-overview-banner-copy {
+    left: 18px;
+    bottom: 18px;
+  }
+
+  .farmer-overview-banner-copy strong {
+    font-size: 1.4rem;
+  }
+
+  .farmer-overview-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .farmer-overview-stat-card {
+    min-height: 76px;
+    padding: 12px;
+  }
+
+  .farmer-overview-lower-grid {
+    margin-top: 12px;
+  }
+
+  .farmer-overview-order-panel,
+  .farmer-overview-action-panel {
+    padding: 12px;
+  }
+
+  .farmer-overview-order-item {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 7px;
+  }
+
+  .farmer-overview-order-topline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .farmer-overview-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .farmer-overview-action-button {
+    min-height: 58px;
+  }
+}
+
+@media (max-width: 360px) {
+  .farmer-overview-shell {
+    width: calc(100% - 16px);
+    padding-inline: 9px;
+  }
+
+  .farmer-overview-stat-card strong {
+    font-size: 1.1rem;
+  }
+
+  .farmer-overview-order-amount em {
+    padding-inline: 6px;
   }
 }
 .farmer-inventory-container { width: min(1240px, calc(100% - 3rem)); margin-inline: auto; padding: 1.5rem 0 4rem; }
