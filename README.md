@@ -13,7 +13,6 @@ FarmDirect AI is a marketplace and operations platform for agricultural supply c
 - [Project Structure](#project-structure)
 - [Prerequisites & Requirements](#prerequisites--requirements)
 - [Installation & Setup](#installation--setup)
-- [Environment Variables](#environment-variables)
 - [Database Setup](#database-setup)
 - [Running the Project](#running-the-project)
 - [Testing](#testing)
@@ -176,25 +175,8 @@ This project supports direct-farmer fulfillment and multi-farmer order allocatio
    `python3 -m pip install -r backend/requirements.txt`
 4. Install frontend dependencies:
    `npm install --prefix frontend`
-5. Create a local `.env` file in the project root with the required environment variables.
-6. Start PostgreSQL locally with Docker or connect to Neon.
-7. Run the app using the commands in the section below.
-
-## Environment Variables
-
-Set the following values before running the backend:
-
-- DATABASE_URL=postgresql+psycopg2://farmdirect:farmdirect@localhost:5432/farmdirect_ai
-- JWT_SECRET_KEY=change-this-to-a-secure-random-value
-- FRONTEND_URL=http://localhost:3000
-- MAIL_SERVER=smtp.gmail.com
-- MAIL_PORT=587
-- MAIL_USE_TLS=true
-- MAIL_USERNAME=your-smtp-user@example.com
-- MAIL_PASSWORD=your-smtp-password
-- MAIL_DEFAULT_SENDER=your-smtp-user@example.com
-
-Do not commit real credentials into source control. Use local environment variables or a secure deployment secret store.
+5. Start PostgreSQL locally with Docker or connect to Neon.
+6. Run the app using the commands in the section below.
 
 ## Database Setup
 
@@ -202,7 +184,7 @@ The backend expects a PostgreSQL-compatible database. For local development:
 
 1. Start the database container:
    `docker compose up -d postgres`
-2. Configure `DATABASE_URL` to point to the local PostgreSQL instance.
+2. Configure the backend to connect to the local PostgreSQL instance.
 3. Create the schema with the Flask app initialization and SQLAlchemy model metadata.
 4. Seed the demo dataset with:
    `python3 backend/seed.py`
@@ -214,8 +196,6 @@ The project includes a Neon-friendly PostgreSQL connection pattern and the SQLAl
 ### Backend
 
 ```bash
-export DATABASE_URL=postgresql+psycopg2://farmdirect:farmdirect@localhost:5432/farmdirect_ai
-export JWT_SECRET_KEY=replace-with-a-secret
 python3 backend/run.py
 ```
 
@@ -249,7 +229,7 @@ This repository includes a Render deployment configuration in [render.yaml](rend
 - Render static web service for the frontend build
 - Neon PostgreSQL as the database target
 
-The deployment configuration expects environment variables to be supplied securely through the platform environment, not committed in code.
+Configure deployment-specific settings securely through the hosting platform before deploying.
 
 ## Security
 
@@ -274,7 +254,7 @@ Important security and integrity safeguards included in the current implementati
 ### Development flow
 
 1. Install dependencies.
-2. Create the required environment variables.
+2. Configure the backend for your local database and services.
 3. Run the backend and frontend locally.
 4. Make small, focused changes.
 5. Update tests when behavior changes.
@@ -309,13 +289,12 @@ Use the issue tracker to propose product and workflow improvements. Describe the
 
 ### Backend fails to start
 
-- Confirm that `DATABASE_URL` is set and points to a valid PostgreSQL connection.
+- Confirm the backend database configuration points to a valid PostgreSQL connection.
 - Confirm the Python environment has the dependencies installed from `backend/requirements.txt`.
-- Ensure the configured JWT secret is set.
 
 ### Registration / OTP failures
 
-- Check the `MAIL_*` environment variables.
+- Check the SMTP configuration and credentials.
 - Confirm SMTP credentials and sender configuration are valid.
 - If SMTP is not configured, registration will fail with a clear 503-style response instead of a fake success.
 
